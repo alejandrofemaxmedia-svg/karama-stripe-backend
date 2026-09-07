@@ -1,0 +1,9 @@
+{
+  "name": "karama-stripe-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backend mínimo para crear sesiones de Stripe Checkout desde la landing de Karama Candle.",
+  "dependencies": {
+    "stripe": "^16.0.0"
+  }
+}
