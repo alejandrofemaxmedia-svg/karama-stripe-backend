@@ -1,10 +1,15 @@
 // api/create-checkout.js
 // Función serverless para Vercel. Crea una Stripe Checkout Session con la
-// cantidad de plazas que mande la landing, y devuelve la URL de pago.
+// cantidad de plazas y la FECHA que mande la landing, y devuelve la URL de
+// pago. Stripe calcula el total automáticamente (precio unitario x
+// cantidad), así que el importe que ve el cliente en la landing y el que le
+// cobra Stripe en el checkout SIEMPRE coinciden.
 //
-// Stripe calcula el total automáticamente (precio unitario x cantidad),
-// así que el importe que ve el cliente en la landing y el que le cobra
-// Stripe en el checkout SIEMPRE coinciden.
+// No hace falta crear ningún Producto ni Precio en el Dashboard de Stripe:
+// el precio y la descripción de cada fecha se definen aquí mismo, abajo,
+// en DATE_INFO. Para añadir, quitar o cambiar una fecha, solo hay que
+// editar ese objeto y volver a subir este archivo a GitHub (Vercel
+// redespliega solo).
 
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
@@ -14,7 +19,17 @@ const UNIT_AMOUNT = 5000; // 50,00 € en céntimos. Cámbialo aquí si sube el 
 const CURRENCY = 'eur';
 const MAX_QTY = 10; // máximo de plazas que se pueden reservar de una vez
 const PRODUCT_NAME = 'Taller de velas · Karama Candle';
-const PRODUCT_DESCRIPTION = 'Próximo taller: 26 de septiembre · Unibertsitate Etorbidea, 8, Bilbao';
+const ADDRESS = 'Unibertsitate Etorbidea, 8, Bilbao';
+
+// --- Fechas disponibles ---
+// La clave (sep26, oct10, ...) tiene que coincidir exactamente con el
+// value de cada <option> del desplegable en karama_priced_stripe.html.
+const DATE_INFO = {
+  sep26: { description: `Sábado 26 de septiembre, 17:00 a 20:00 · ${ADDRESS}` },
+  oct10: { description: `Sábado 10 de octubre, 10:30 a 13:30 · ${ADDRESS}` },
+  oct18: { description: `Domingo 18 de octubre, 10:30 a 13:30 · ${ADDRESS}` },
+  oct24: { description: `Sábado 24 de octubre, 17:00 a 20:00 · ${ADDRESS}` },
+};
 
 // Dominio(s) desde los que se puede llamar a esta función (tu landing).
 // Pon aquí el dominio real donde vive la landing (ej: "https://www.karamacandle.com").
@@ -45,11 +60,16 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { quantity, returnUrl } = req.body || {};
+    const { quantity, dateKey, returnUrl } = req.body || {};
     const qty = parseInt(quantity, 10);
 
     if (!Number.isInteger(qty) || qty < 1 || qty > MAX_QTY) {
       return res.status(400).json({ error: 'Cantidad no válida' });
+    }
+
+    const dateInfo = DATE_INFO[dateKey];
+    if (!dateInfo) {
+      return res.status(400).json({ error: 'Fecha no válida' });
     }
 
     // Si la landing manda su propia URL, volvemos ahí tras el pago.
@@ -66,7 +86,7 @@ module.exports = async (req, res) => {
             currency: CURRENCY,
             product_data: {
               name: PRODUCT_NAME,
-              description: PRODUCT_DESCRIPTION,
+              description: dateInfo.description,
             },
             unit_amount: UNIT_AMOUNT,
           },
