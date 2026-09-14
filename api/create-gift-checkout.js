@@ -52,7 +52,6 @@ module.exports = async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
-      allow_promotion_codes: true, // TEMPORAL: solo para poder probar el circuito completo sin gastar dinero real. Quitar esta línea después de probar.
       // Pedimos email siempre (aunque Checkout ya lo pide por defecto),
       // porque a esa dirección es donde se manda el código del regalo.
       customer_email: undefined,
