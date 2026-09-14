@@ -80,6 +80,7 @@ module.exports = async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
+      allow_promotion_codes: true, // permite meter un código de abono regalo en la propia página de Stripe
       line_items: [
         {
           price_data: {
