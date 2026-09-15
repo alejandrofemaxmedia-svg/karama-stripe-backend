@@ -94,6 +94,13 @@ module.exports = async (req, res) => {
           quantity: qty,
         },
       ],
+      // Metadatos: así el webhook sabe la fecha y cantidad para poder
+      // mandar el email bonito de agradecimiento por la reserva.
+      metadata: {
+        type: 'booking',
+        date_description: dateInfo.description,
+        quantity: String(qty),
+      },
       success_url: `${baseUrl}?reserva=confirmada`,
       cancel_url: `${baseUrl}?reserva=cancelada`,
     });
