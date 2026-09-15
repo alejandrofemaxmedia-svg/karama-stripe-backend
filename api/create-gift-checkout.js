@@ -52,14 +52,6 @@ module.exports = async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
-      // TEMPORAL: solo para poder probar el email del abono regalo sin
-      // pagar de verdad, usando un código promocional al 100%. Quitar esta
-      // línea cuando termine la prueba (no tiene sentido en el producto
-      // final, porque el abono regalo ya es el "descuento" en sí mismo).
-      allow_promotion_codes: true,
-      // Pedimos email siempre (aunque Checkout ya lo pide por defecto),
-      // porque a esa dirección es donde se manda el código del regalo.
-      customer_email: undefined,
       line_items: [
         {
           price_data: {
