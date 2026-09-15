@@ -61,7 +61,7 @@ function generateCode() {
 function emailHeader() {
   return `
     <tr>
-      <td bgcolor="${COLOR_INK}" style="background:${COLOR_INK}; padding:28px 24px; text-align:center; border-radius:16px 16px 0 0;">
+      <td class="bg-ink" bgcolor="${COLOR_INK}" style="background:${COLOR_INK}; padding:28px 24px; text-align:center; border-radius:16px 16px 0 0;">
         <img src="${LOGO_URL}" alt="Karama Candle" width="72" height="72" style="display:inline-block; border-radius:50%;" />
       </td>
     </tr>
@@ -72,8 +72,8 @@ function emailHeader() {
 function emailFooter() {
   return `
     <tr>
-      <td bgcolor="${COLOR_WHITE}" style="background:${COLOR_WHITE}; padding:22px 32px 30px; text-align:center; border-radius:0 0 16px 16px;">
-        <p style="margin:0; font-family:Arial,sans-serif; font-size:12.5px; color:${COLOR_INK_SOFT}; opacity:0.75;">
+      <td class="bg-white" bgcolor="${COLOR_WHITE}" style="background:${COLOR_WHITE}; padding:22px 32px 30px; text-align:center; border-radius:0 0 16px 16px;">
+        <p class="text-ink-soft" style="margin:0; font-family:Arial,sans-serif; font-size:12.5px; color:${COLOR_INK_SOFT}; opacity:0.75;">
           Karama Candle · Unibertsitate Etorbidea, 8, Bilbao
         </p>
       </td>
@@ -83,13 +83,14 @@ function emailFooter() {
 
 // Envoltorio general del email (fondo crema, tarjeta centrada).
 //
-// IMPORTANTE: la app de Gmail en el móvil tiene un "modo oscuro" que
-// intenta invertir automáticamente los colores de los emails que no
-// avisan de que su diseño es fijo. Las etiquetas <meta name="color-scheme">
-// y <meta name="supported-color-schemes"> del <head>, más el atributo
-// bgcolor (además del style) en las tablas de color, son lo que hace que
-// Gmail (y otros correos) respeten los colores de Karama tal cual, tanto
-// en modo claro como en modo oscuro del teléfono.
+// IMPORTANTE: la app de Gmail en el móvil tiene un "modo oscuro" muy
+// agresivo que invierte los colores del email aunque se le avise con
+// <meta name="color-scheme">. Cuando hace esto, marca los elementos que ha
+// tocado con un atributo especial (data-ogsc para el texto, data-ogsb para
+// el fondo). El truco que usamos aquí es apuntar directamente a esos
+// atributos en la hoja de estilos de abajo, con !important, para "deshacer"
+// el cambio de Gmail y devolver el color exacto de Karama. Así el email se
+// ve igual en el ordenador y en el móvil, tanto en modo claro como oscuro.
 function emailWrapper(bodyHtml, preheader) {
   return `
     <!DOCTYPE html>
@@ -100,16 +101,26 @@ function emailWrapper(bodyHtml, preheader) {
         <meta name="color-scheme" content="light" />
         <meta name="supported-color-schemes" content="light" />
         <title></title>
+        <style>
+          :root { color-scheme: light only; supported-color-schemes: light only; }
+          [data-ogsc] .bg-ink, [data-ogsb] .bg-ink { background-color: ${COLOR_INK} !important; }
+          [data-ogsc] .bg-white, [data-ogsb] .bg-white { background-color: ${COLOR_WHITE} !important; }
+          [data-ogsc] .bg-cream, [data-ogsb] .bg-cream { background-color: ${COLOR_CREAM} !important; }
+          [data-ogsc] .bg-blush, [data-ogsb] .bg-blush { background-color: ${COLOR_BLUSH} !important; }
+          [data-ogsc] .text-ink, [data-ogsb] .text-ink { color: ${COLOR_INK} !important; }
+          [data-ogsc] .text-ink-soft, [data-ogsb] .text-ink-soft { color: ${COLOR_INK_SOFT} !important; }
+          [data-ogsc] .text-ink-70, [data-ogsb] .text-ink-70 { color: ${COLOR_INK} !important; opacity: 0.7 !important; }
+        </style>
       </head>
-      <body style="margin:0; padding:0; background:${COLOR_CREAM};">
+      <body class="bg-cream" style="margin:0; padding:0; background:${COLOR_CREAM};">
         <div style="display:none; max-height:0; overflow:hidden; opacity:0;">${preheader}</div>
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${COLOR_CREAM}" style="background:${COLOR_CREAM}; padding:32px 12px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="bg-cream" bgcolor="${COLOR_CREAM}" style="background:${COLOR_CREAM}; padding:32px 12px;">
           <tr>
             <td align="center">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${COLOR_WHITE}" style="max-width:480px; background:${COLOR_WHITE}; border-radius:16px; overflow:hidden; font-family:Arial,sans-serif;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="bg-white" bgcolor="${COLOR_WHITE}" style="max-width:480px; background:${COLOR_WHITE}; border-radius:16px; overflow:hidden; font-family:Arial,sans-serif;">
                 ${emailHeader()}
                 <tr>
-                  <td bgcolor="${COLOR_WHITE}" style="background:${COLOR_WHITE}; padding:32px 32px 8px;">
+                  <td class="bg-white" bgcolor="${COLOR_WHITE}" style="background:${COLOR_WHITE}; padding:32px 32px 8px;">
                     ${bodyHtml}
                   </td>
                 </tr>
@@ -157,8 +168,8 @@ async function sendGiftEmail(toEmail, codes) {
       (c) => `
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 10px;">
           <tr>
-            <td bgcolor="${COLOR_BLUSH}" style="background:${COLOR_BLUSH}; border:1px solid ${COLOR_BLUSH_DEEP}; border-radius:12px; padding:14px 18px; text-align:center;">
-              <span style="font-family:'Courier New',monospace; font-size:21px; font-weight:700; letter-spacing:0.06em; color:${COLOR_INK};">${c}</span>
+            <td class="bg-blush" bgcolor="${COLOR_BLUSH}" style="background:${COLOR_BLUSH}; border:1px solid ${COLOR_BLUSH_DEEP}; border-radius:12px; padding:14px 18px; text-align:center;">
+              <span class="text-ink" style="font-family:'Courier New',monospace; font-size:21px; font-weight:700; letter-spacing:0.06em; color:${COLOR_INK};">${c}</span>
             </td>
           </tr>
         </table>
@@ -167,19 +178,19 @@ async function sendGiftEmail(toEmail, codes) {
     .join('');
 
   const body = `
-    <h1 style="margin:0 0 14px; font-family:Georgia,serif; font-size:24px; color:${COLOR_INK};">¡Gracias por tu compra!</h1>
-    <p style="margin:0 0 18px; font-size:15px; line-height:1.55; color:${COLOR_INK_SOFT};">
+    <h1 class="text-ink" style="margin:0 0 14px; font-family:Georgia,serif; font-size:24px; color:${COLOR_INK};">¡Gracias por tu compra!</h1>
+    <p class="text-ink-soft" style="margin:0 0 18px; font-size:15px; line-height:1.55; color:${COLOR_INK_SOFT};">
       Aquí tienes ${isPlural ? 'tus códigos de abono regalo' : 'tu código de abono regalo'} para el taller de velas de Karama Candle:
     </p>
     ${codesHtml}
-    <p style="margin:22px 0 10px; font-size:14.5px; line-height:1.55; color:${COLOR_INK_SOFT};">
+    <p class="text-ink-soft" style="margin:22px 0 10px; font-size:14.5px; line-height:1.55; color:${COLOR_INK_SOFT};">
       Para regalarlo, comparte ${isPlural ? 'uno de estos códigos' : 'este código'} con la persona a la que se lo quieras regalar.
       Cuando reserve su plaza en la web, podrá introducirlo en el paso de pago y el importe se pondrá a 0€ automáticamente.
     </p>
-    <p style="margin:0 0 22px; font-size:13px; color:${COLOR_INK_SOFT}; opacity:0.8;">
+    <p class="text-ink-soft" style="margin:0 0 22px; font-size:13px; color:${COLOR_INK_SOFT}; opacity:0.8;">
       Cada código solo se puede usar una vez.
     </p>
-    <p style="margin:0; font-family:Georgia,serif; font-size:15px; color:${COLOR_INK};">
+    <p class="text-ink" style="margin:0; font-family:Georgia,serif; font-size:15px; color:${COLOR_INK};">
       ¡Gracias por elegir Karama Candle!
     </p>
   `;
@@ -192,25 +203,25 @@ async function sendBookingThanksEmail(toEmail, { dateDescription, quantity }) {
   const plazasText = quantity > 1 ? `${quantity} plazas` : '1 plaza';
 
   const body = `
-    <h1 style="margin:0 0 14px; font-family:Georgia,serif; font-size:24px; color:${COLOR_INK};">¡Gracias por tu reserva!</h1>
-    <p style="margin:0 0 18px; font-size:15px; line-height:1.55; color:${COLOR_INK_SOFT};">
+    <h1 class="text-ink" style="margin:0 0 14px; font-family:Georgia,serif; font-size:24px; color:${COLOR_INK};">¡Gracias por tu reserva!</h1>
+    <p class="text-ink-soft" style="margin:0 0 18px; font-size:15px; line-height:1.55; color:${COLOR_INK_SOFT};">
       Ya tienes tu plaza confirmada para el taller de velas de Karama Candle. Aquí tienes el resumen de tu reserva:
     </p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
       <tr>
-        <td bgcolor="${COLOR_BLUSH}" style="background:${COLOR_BLUSH}; border-radius:12px; padding:18px 20px;">
-          <p style="margin:0 0 6px; font-size:13px; text-transform:uppercase; letter-spacing:0.05em; color:${COLOR_INK}; opacity:0.7;">Fecha del taller</p>
-          <p style="margin:0 0 14px; font-size:15.5px; font-weight:700; color:${COLOR_INK};">${dateDescription || 'Consulta tu fecha en la confirmación de Stripe'}</p>
-          <p style="margin:0 0 6px; font-size:13px; text-transform:uppercase; letter-spacing:0.05em; color:${COLOR_INK}; opacity:0.7;">Plazas reservadas</p>
-          <p style="margin:0; font-size:15.5px; font-weight:700; color:${COLOR_INK};">${plazasText}</p>
+        <td class="bg-blush" bgcolor="${COLOR_BLUSH}" style="background:${COLOR_BLUSH}; border-radius:12px; padding:18px 20px;">
+          <p class="text-ink-70" style="margin:0 0 6px; font-size:13px; text-transform:uppercase; letter-spacing:0.05em; color:${COLOR_INK}; opacity:0.7;">Fecha del taller</p>
+          <p class="text-ink" style="margin:0 0 14px; font-size:15.5px; font-weight:700; color:${COLOR_INK};">${dateDescription || 'Consulta tu fecha en la confirmación de Stripe'}</p>
+          <p class="text-ink-70" style="margin:0 0 6px; font-size:13px; text-transform:uppercase; letter-spacing:0.05em; color:${COLOR_INK}; opacity:0.7;">Plazas reservadas</p>
+          <p class="text-ink" style="margin:0; font-size:15.5px; font-weight:700; color:${COLOR_INK};">${plazasText}</p>
         </td>
       </tr>
     </table>
-    <p style="margin:0 0 22px; font-size:14.5px; line-height:1.55; color:${COLOR_INK_SOFT};">
+    <p class="text-ink-soft" style="margin:0 0 22px; font-size:14.5px; line-height:1.55; color:${COLOR_INK_SOFT};">
       Te esperamos en Unibertsitate Etorbidea, 8, Bilbao. Si necesitas cambiar algo de tu reserva, escríbenos a
       <strong>karamacandle@gmail.com</strong> y te ayudamos encantadas.
     </p>
-    <p style="margin:0; font-family:Georgia,serif; font-size:15px; color:${COLOR_INK};">
+    <p class="text-ink" style="margin:0; font-family:Georgia,serif; font-size:15px; color:${COLOR_INK};">
       ¡Nos vemos muy pronto!
     </p>
   `;
