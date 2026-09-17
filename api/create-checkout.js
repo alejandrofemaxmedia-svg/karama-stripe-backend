@@ -21,11 +21,20 @@ const MAX_QTY = 10; // máximo de plazas que se pueden reservar de una vez
 const PRODUCT_NAME = 'Taller de velas · Karama Candle';
 const ADDRESS = 'Unibertsitate Etorbidea, 8, Bilbao';
 
+// Aviso de política de cambios/devoluciones. Sale justo antes del botón de
+// pagar, en la propia pantalla de Stripe. Para cambiar el texto, solo hay
+// que editar esta línea.
+const NO_REFUNDS_TEXT = 'No se admiten cambios ni devoluciones, salvo causa de fuerza mayor debidamente justificada.';
+
 // --- Fechas disponibles ---
 // La clave (sep26, oct10, ...) tiene que coincidir exactamente con el
 // value de cada <option> del desplegable en karama_priced_stripe.html.
+// sep26 se ha quitado de aquí a propósito: esa fecha ya está agotada y no
+// se puede reservar (aunque en la landing esté marcada como "AGOTADO" y
+// deshabilitada, esto es una segunda barrera para que nadie pueda comprarla
+// saltándose el desplegable). Para reabrirla, vuelve a añadir esta línea:
+// sep26: { description: `Sábado 26 de septiembre, 17:00 a 20:00 · ${ADDRESS}` },
 const DATE_INFO = {
-  sep26: { description: `Sábado 26 de septiembre, 17:00 a 20:00 · ${ADDRESS}` },
   oct10: { description: `Sábado 10 de octubre, 10:30 a 13:30 · ${ADDRESS}` },
   oct18: { description: `Domingo 18 de octubre, 10:30 a 13:30 · ${ADDRESS}` },
   oct24: { description: `Sábado 24 de octubre, 17:00 a 20:00 · ${ADDRESS}` },
@@ -81,6 +90,9 @@ module.exports = async (req, res) => {
       mode: 'payment',
       payment_method_types: ['card'],
       allow_promotion_codes: true, // permite meter un código de abono regalo en la propia página de Stripe
+      custom_text: {
+        submit: { message: NO_REFUNDS_TEXT },
+      },
       line_items: [
         {
           price_data: {
