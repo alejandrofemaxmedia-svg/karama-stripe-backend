@@ -13,6 +13,11 @@ const MAX_QTY = 10;
 const PRODUCT_NAME = 'Abono regalo · Taller de velas Karama Candle';
 const PRODUCT_DESCRIPTION = 'Vale para una plaza en cualquier fecha del taller de velas. Recibirás el código por email para regalarlo.';
 
+// Aviso de política de cambios/devoluciones. Sale justo antes del botón de
+// pagar, en la propia pantalla de Stripe. Para cambiar el texto, solo hay
+// que editar esta línea.
+const NO_REFUNDS_TEXT = 'No se admiten cambios ni devoluciones, salvo causa de fuerza mayor debidamente justificada.';
+
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGIN || '*')
   .split(',')
   .map((s) => s.trim());
@@ -52,6 +57,9 @@ module.exports = async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
+      custom_text: {
+        submit: { message: NO_REFUNDS_TEXT },
+      },
       line_items: [
         {
           price_data: {
