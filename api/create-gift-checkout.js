@@ -58,7 +58,6 @@ module.exports = async (req, res) => {
       mode: 'payment',
       payment_method_types: ['card'],
       phone_number_collection: { enabled: true }, // Stripe pide el teléfono al pagar
-      allow_promotion_codes: true, // TEMPORAL: solo para la prueba. Quitar después.
       custom_text: {
         submit: { message: NO_REFUNDS_TEXT },
       },
