@@ -16,7 +16,7 @@ const PRODUCT_DESCRIPTION = 'Vale para una plaza en cualquier fecha del taller d
 // Aviso de política de cambios/devoluciones. Sale justo antes del botón de
 // pagar, en la propia pantalla de Stripe. Para cambiar el texto, solo hay
 // que editar esta línea.
-const NO_REFUNDS_TEXT = 'No se admiten cambios ni devoluciones, salvo causa de fuerza mayor debidamente justificada.';
+const NO_REFUNDS_TEXT = 'No se realizan devoluciones. No se admiten cambios con menos de 48h, salvo fuerza mayor con justificante.';
 
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGIN || '*')
   .split(',')
@@ -57,6 +57,7 @@ module.exports = async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
+      phone_number_collection: { enabled: true }, // Stripe pide el teléfono al pagar
       custom_text: {
         submit: { message: NO_REFUNDS_TEXT },
       },
