@@ -47,6 +47,20 @@ function readRawBody(req) {
   });
 }
 
+// Los bonos regalo caducan a los 3 meses de la compra.
+const GIFT_VALID_MONTHS = 3;
+
+function giftExpiryDate() {
+  const d = new Date();
+  d.setMonth(d.getMonth() + GIFT_VALID_MONTHS);
+  d.setHours(23, 59, 59, 0);
+  return d;
+}
+
+function formatDateEs(d) {
+  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Madrid' });
+}
+
 function generateCode() {
   // Código legible, ej: KARAMA-7F3K9Q
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sin 0/O/1/I para evitar confusiones
@@ -160,8 +174,9 @@ async function sendEmail(toEmail, subject, html) {
   }
 }
 
-async function sendGiftEmail(toEmail, codes) {
+async function sendGiftEmail(toEmail, codes, expiresAt) {
   const isPlural = codes.length > 1;
+  const expiryText = expiresAt ? formatDateEs(expiresAt) : '';
 
   const codesHtml = codes
     .map(
@@ -180,23 +195,23 @@ async function sendGiftEmail(toEmail, codes) {
   const body = `
     <h1 class="text-ink" style="margin:0 0 14px; font-family:Georgia,serif; font-size:24px; color:${COLOR_INK};">¡Gracias por tu compra!</h1>
     <p class="text-ink-soft" style="margin:0 0 18px; font-size:15px; line-height:1.55; color:${COLOR_INK_SOFT};">
-      Aquí tienes ${isPlural ? 'tus códigos de abono regalo' : 'tu código de abono regalo'} para el taller de velas de Karama Candle:
+      Aquí tienes ${isPlural ? 'tus códigos de bono regalo' : 'tu código de bono regalo'} para el taller de velas de Karama Candle:
     </p>
     ${codesHtml}
     <p class="text-ink-soft" style="margin:22px 0 10px; font-size:14.5px; line-height:1.55; color:${COLOR_INK_SOFT};">
       Para regalarlo, comparte ${isPlural ? 'uno de estos códigos' : 'este código'} con la persona a la que se lo quieras regalar.
       Cuando reserve su plaza en la web, podrá introducirlo en el paso de pago y el importe se pondrá a 0€ automáticamente.
     </p>
-    <p class="text-ink-soft" style="margin:0 0 22px; font-size:13px; color:${COLOR_INK_SOFT}; opacity:0.8;">
-      Cada código solo se puede usar una vez.
+    <p class="text-ink-soft" style="margin:0 0 22px; font-size:13px; line-height:1.5; color:${COLOR_INK_SOFT}; opacity:0.8;">
+      Cada código solo se puede usar una vez${expiryText ? ` y es válido hasta el <strong>${expiryText}</strong> (3 meses desde la compra). Pasado ese plazo, caduca.` : '.'}
     </p>
     <p class="text-ink" style="margin:0; font-family:Georgia,serif; font-size:15px; color:${COLOR_INK};">
       ¡Gracias por elegir Karama Candle!
     </p>
   `;
 
-  const html = emailWrapper(body, 'Tu abono regalo ya está listo');
-  await sendEmail(toEmail, 'Tu abono regalo — Karama Candle', html);
+  const html = emailWrapper(body, 'Tu bono regalo ya está listo');
+  await sendEmail(toEmail, 'Tu bono regalo — Karama Candle', html);
 }
 
 async function sendBookingThanksEmail(toEmail, { dateDescription, quantity }) {
@@ -258,18 +273,20 @@ module.exports = async (req, res) => {
           console.error('Falta configurar GIFT_COUPON_ID en las variables de entorno.');
         } else {
           const codes = [];
+          const expiresAt = giftExpiryDate();
           for (let i = 0; i < qty; i++) {
             const code = generateCode();
             await stripe.promotionCodes.create({
               coupon: GIFT_COUPON_ID,
               code,
               max_redemptions: 1,
+              expires_at: Math.floor(expiresAt.getTime() / 1000), // caduca a los 3 meses
             });
             codes.push(code);
           }
 
           if (buyerEmail) {
-            await sendGiftEmail(buyerEmail, codes);
+            await sendGiftEmail(buyerEmail, codes, expiresAt);
           } else {
             console.error('No se encontró el email del comprador para mandar los códigos:', codes);
           }
