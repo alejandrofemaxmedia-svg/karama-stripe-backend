@@ -12,6 +12,12 @@
 
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const { TALLERES, claveDeSesion, getDisponibilidad } = require('./_plazas');
+
+// A quién se avisa cuando una fecha se agota. Se puede cambiar con la
+// variable de entorno NOTIFY_EMAIL en Vercel (varios separados por coma).
+const NOTIFY_EMAILS = (process.env.NOTIFY_EMAIL || 'alejandro.femaxmedia@gmail.com,karamacandle@gmail.com')
+  .split(',').map((s) => s.trim()).filter(Boolean);
 
 const GIFT_COUPON_ID = process.env.GIFT_COUPON_ID; // el ID del Cupón "100% descuento" creado en Stripe
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -245,6 +251,33 @@ async function sendBookingThanksEmail(toEmail, { dateDescription, quantity }) {
   await sendEmail(toEmail, 'Reserva confirmada — Karama Candle', html);
 }
 
+// Aviso interno: cuando una reserva deja la fecha sin plazas, mandamos un
+// email a Karama. La landing ya se marca como AGOTADO sola; esto es solo
+// para que lo sepáis al momento.
+async function avisarSiAgotado(session) {
+  const k = claveDeSesion(session);
+  if (!k) return;
+  const disp = await getDisponibilidad();
+  const d = disp[k];
+  if (!d || d.motivo !== 'completa') return;
+
+  const sobreventa = d.ocupadas > d.plazas;
+  const fechaCorta = TALLERES[k].descripcion.split(' · ')[0];
+  const body = `
+    <h1 class="text-ink" style="margin:0 0 14px; font-family:Georgia,serif; font-size:24px; color:${COLOR_INK};">${sobreventa ? '¡Ojo! Hay más plazas vendidas que aforo' : 'Taller completo'}</h1>
+    <p class="text-ink-soft" style="margin:0 0 18px; font-size:15px; line-height:1.55; color:${COLOR_INK_SOFT};">
+      <strong>${TALLERES[k].descripcion}</strong>
+    </p>
+    <p class="text-ink-soft" style="margin:0 0 18px; font-size:15px; line-height:1.55; color:${COLOR_INK_SOFT};">
+      Plazas ocupadas: <strong>${d.ocupadas} de ${d.plazas}</strong> (${d.vendidas} pagadas en la web${d.extra ? `, ${d.extra} añadidas a mano` : ''}).
+    </p>
+    <p class="text-ink-soft" style="margin:0 0 22px; font-size:14.5px; line-height:1.55; color:${COLOR_INK_SOFT};">
+      La fecha ya aparece como <strong>AGOTADO</strong> en las landings y en la página de pago, y nadie más puede reservarla. No hace falta hacer nada.
+    </p>
+  `;
+  await sendEmail(NOTIFY_EMAILS, `${sobreventa ? '⚠️ Sobreventa' : 'Agotado'}: ${fechaCorta}`, emailWrapper(body, 'Fecha completa'));
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).send('Método no permitido');
@@ -309,6 +342,11 @@ module.exports = async (req, res) => {
         }
       } catch (err) {
         console.error('Error enviando el email de agradecimiento de la reserva:', err);
+      }
+      try {
+        await avisarSiAgotado(session);
+      } catch (err) {
+        console.error('Error comprobando si la fecha se ha agotado:', err);
       }
     }
   }
