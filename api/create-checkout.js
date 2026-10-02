@@ -5,11 +5,8 @@
 // cantidad), así que el importe que ve el cliente en la landing y el que le
 // cobra Stripe en el checkout SIEMPRE coinciden.
 //
-// No hace falta crear ningún Producto ni Precio en el Dashboard de Stripe:
-// el precio y la descripción de cada fecha se definen aquí mismo, abajo,
-// en DATE_INFO. Para añadir, quitar o cambiar una fecha, solo hay que
-// editar ese objeto y volver a subir este archivo a GitHub (Vercel
-// redespliega solo).
+// No hace falta crear ningún Producto ni Precio en el Dashboard de Stripe.
+// Las fechas y el aforo se configuran en api/_plazas.js.
 
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
@@ -26,19 +23,11 @@ const ADDRESS = 'Unibertsitate Etorbidea, 8, Bilbao';
 // que editar esta línea.
 const NO_REFUNDS_TEXT = 'No se realizan devoluciones. No se admiten cambios con menos de 48h, salvo fuerza mayor con justificante.';
 
-// --- Fechas disponibles ---
-// La clave (sep26, oct10, ...) tiene que coincidir exactamente con el
-// value de cada <option> del desplegable en karama_priced_stripe.html.
-// sep26 se ha quitado de aquí a propósito: esa fecha ya está agotada y no
-// se puede reservar (aunque en la landing esté marcada como "AGOTADO" y
-// deshabilitada, esto es una segunda barrera para que nadie pueda comprarla
-// saltándose el desplegable). Para reabrirla, vuelve a añadir esta línea:
-// sep26: { description: `Sábado 26 de septiembre, 17:00 a 20:00 · ${ADDRESS}` },
-const DATE_INFO = {
-  oct10: { description: `Sábado 10 de octubre, 10:30 a 13:30 · ${ADDRESS}` },
-  oct18: { description: `Domingo 18 de octubre, 10:30 a 13:30 · ${ADDRESS}` },
-  oct24: { description: `Sábado 24 de octubre, 17:00 a 20:00 · ${ADDRESS}` },
-};
+// --- Fechas y plazas ---
+// Las fechas, el aforo y los cierres manuales ya NO se tocan aquí: están en
+// api/_plazas.js (TALLERES). Este archivo comprueba allí cuántas plazas
+// quedan antes de mandar a nadie a pagar, así nunca se vende de más.
+const { TALLERES, getDisponibilidad } = require('./_plazas');
 
 // Dominio(s) desde los que se puede llamar a esta función (tu landing).
 // Pon aquí el dominio real donde vive la landing (ej: "https://www.karamacandle.com").
@@ -76,9 +65,28 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Cantidad no válida' });
     }
 
-    const dateInfo = DATE_INFO[dateKey];
-    if (!dateInfo) {
+    const taller = TALLERES[dateKey];
+    if (!taller) {
       return res.status(400).json({ error: 'Fecha no válida' });
+    }
+
+    // Comprobamos en Stripe cuántas plazas quedan para esa fecha.
+    // Si Stripe no responde, dejamos pasar la reserva para no perder ventas
+    // (queda apuntado en los logs de Vercel).
+    try {
+      const disp = await getDisponibilidad();
+      const quedan = disp[dateKey].quedan;
+      if (quedan <= 0) {
+        return res.status(409).json({ error: 'Esta fecha se ha agotado. Elige otra fecha.', quedan: 0 });
+      }
+      if (qty > quedan) {
+        return res.status(409).json({
+          error: quedan === 1 ? 'Solo queda 1 plaza para esta fecha.' : `Solo quedan ${quedan} plazas para esta fecha.`,
+          quedan,
+        });
+      }
+    } catch (err) {
+      console.error('No se pudo comprobar el aforo, se deja pasar la reserva:', err);
     }
 
     // Si la landing manda su propia URL, volvemos ahí tras el pago.
@@ -100,7 +108,7 @@ module.exports = async (req, res) => {
             currency: CURRENCY,
             product_data: {
               name: PRODUCT_NAME,
-              description: dateInfo.description,
+              description: taller.descripcion,
             },
             unit_amount: UNIT_AMOUNT,
           },
@@ -111,7 +119,8 @@ module.exports = async (req, res) => {
       // mandar el email bonito de agradecimiento por la reserva.
       metadata: {
         type: 'booking',
-        date_description: dateInfo.description,
+        date_key: dateKey,
+        date_description: taller.descripcion,
         quantity: String(qty),
       },
       success_url: `${baseUrl}?reserva=confirmada`,
