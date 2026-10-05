@@ -56,6 +56,32 @@ const TALLERES = {
     descripcion: `Sábado 24 de octubre, 17:00 a 20:00 · ${ADDRESS}`,
     plazas: 18, extra: 0, cerrada: false,
   },
+  // --- Noviembre (horario de invierno: +01:00) ---
+  nov07: {
+    inicio: '2026-11-07T17:00:00+01:00',
+    descripcion: `Sábado 7 de noviembre, 17:00 a 20:00 · ${ADDRESS}`,
+    plazas: 18, extra: 0, cerrada: false,
+  },
+  nov15: {
+    inicio: '2026-11-15T10:30:00+01:00',
+    descripcion: `Domingo 15 de noviembre, 10:30 a 13:30 · ${ADDRESS}`,
+    plazas: 18, extra: 0, cerrada: false,
+  },
+  nov21: {
+    inicio: '2026-11-21T17:00:00+01:00',
+    descripcion: `Sábado 21 de noviembre, 17:00 a 20:00 · ${ADDRESS}`,
+    plazas: 18, extra: 0, cerrada: false,
+  },
+  nov22: {
+    inicio: '2026-11-22T10:30:00+01:00',
+    descripcion: `Domingo 22 de noviembre, 10:30 a 13:30 · ${ADDRESS}`,
+    plazas: 18, extra: 0, cerrada: false,
+  },
+  nov29: {
+    inicio: '2026-11-29T10:30:00+01:00',
+    descripcion: `Domingo 29 de noviembre, 10:30 a 13:30 · ${ADDRESS}`,
+    plazas: 18, extra: 0, cerrada: false,
+  },
 };
 
 // Hasta cuántos días atrás se buscan pedidos en Stripe.
