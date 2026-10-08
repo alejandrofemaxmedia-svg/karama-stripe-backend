@@ -49,7 +49,8 @@ const TALLERES = {
   oct18: {
     inicio: '2026-10-18T10:30:00+02:00',
     descripcion: `Domingo 18 de octubre, 10:30 a 13:30 · ${ADDRESS}`,
-    plazas: 18, extra: 0, cerrada: true, // ya marcada como agotada a mano
+    // 15 pagadas en la web + 1 por fuera = 16 ocupadas → quedan 2 (hubo un cambio de fecha)
+    plazas: 18, extra: 1, cerrada: false,
   },
   oct24: {
     inicio: '2026-10-24T17:00:00+02:00',
