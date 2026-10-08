@@ -21,7 +21,7 @@ const ADDRESS = 'Unibertsitate Etorbidea, 8, Bilbao';
 // Aviso de política de cambios/devoluciones. Sale justo antes del botón de
 // pagar, en la propia pantalla de Stripe. Para cambiar el texto, solo hay
 // que editar esta línea.
-const NO_REFUNDS_TEXT = 'No se realizan devoluciones. No se admiten cambios con menos de 48h, salvo fuerza mayor con justificante.';
+const NO_REFUNDS_TEXT = 'No se realizan reembolsos por cancelaciones voluntarias. Puedes cambiar la fecha avisándonos con un mínimo de 7 días de antelación (sujeto a disponibilidad) o ceder tu plaza a otra persona avisándonos antes.';
 
 // --- Fechas y plazas ---
 // Las fechas, el aforo y los cierres manuales ya NO se tocan aquí: están en
