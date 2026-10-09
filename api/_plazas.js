@@ -44,7 +44,7 @@ const TALLERES = {
   oct10: {
     inicio: '2026-10-10T10:30:00+02:00',
     descripcion: `Sábado 10 de octubre, 10:30 a 13:30 · ${ADDRESS}`,
-    plazas: 18, extra: 0, cerrada: false,
+    plazas: 18, extra: 0, cerrada: true,
   },
   oct18: {
     inicio: '2026-10-18T10:30:00+02:00',
