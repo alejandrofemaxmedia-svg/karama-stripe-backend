@@ -55,7 +55,7 @@ const TALLERES = {
   oct24: {
     inicio: '2026-10-24T17:00:00+02:00',
     descripcion: `Sábado 24 de octubre, 17:00 a 20:00 · ${ADDRESS}`,
-    plazas: 18, extra: 0, cerrada: false,
+    plazas: 18, extra: 0, cerrada: true,
   },
   // --- Noviembre (horario de invierno: +01:00) ---
   nov07: {
