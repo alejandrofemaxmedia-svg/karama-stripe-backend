@@ -44,7 +44,7 @@ const TALLERES = {
   oct10: {
     inicio: '2026-10-10T10:30:00+02:00',
     descripcion: `Sábado 10 de octubre, 10:30 a 13:30 · ${ADDRESS}`,
-    plazas: 18, extra: 0, cerrada: true,
+    plazas: 18, extra: 0, cerrada: true, // completo: últimas plazas reservadas por privado
   },
   oct18: {
     inicio: '2026-10-18T10:30:00+02:00',
@@ -55,7 +55,7 @@ const TALLERES = {
   oct24: {
     inicio: '2026-10-24T17:00:00+02:00',
     descripcion: `Sábado 24 de octubre, 17:00 a 20:00 · ${ADDRESS}`,
-    plazas: 18, extra: 0, cerrada: true,
+    plazas: 18, extra: 0, cerrada: true, // completo
   },
   // --- Noviembre (horario de invierno: +01:00) ---
   nov07: {
@@ -129,7 +129,15 @@ async function analizarSesion(s) {
     clave: null, plazas: 0, importe: (s.amount_total || 0) / 100, reembolsado: 0,
     codigo: '', cuenta: false, motivo: '',
   };
-  if (m.type === 'gift_voucher') { out.motivo = 'compra de bono (no ocupa plaza)'; return out; }
+  if (m.type === 'gift_voucher') {
+    // Compra de bono regalo: es una venta, pero no ocupa plaza en ninguna fecha.
+    const ch = s.payment_intent && s.payment_intent.latest_charge;
+    out.reembolsado = ((ch && ch.amount_refunded) || 0) / 100;
+    out.plazas = parseInt(m.quantity, 10) || 0;
+    out.venta = s.amount_total > 0 && out.reembolsado * 100 < s.amount_total;
+    out.motivo = out.venta ? 'bono regalo pagado' : (s.amount_total > 0 ? 'bono reembolsado' : 'bono a 0 € (prueba)');
+    return out;
+  }
 
   out.clave = claveDeSesion(s);
   out.plazas = parseInt(m.quantity, 10) || 0;
