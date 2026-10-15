@@ -27,7 +27,7 @@ module.exports = async (req, res) => {
     }).join('');
 
     const orden = Object.keys(TALLERES);
-    filas.sort((a, b) => (orden.indexOf(a.clave) - orden.indexOf(b.clave)) || (b.creado - a.creado));
+    filas.sort((a, b) => a.creado - b.creado);
     const rows = filas.map((f) => `<tr style="${f.cuenta ? '' : 'color:#aaa;'}">
       <td ${td}>${f.clave || '—'}</td><td ${td}>${f.cuenta ? '✅ SÍ' : '❌ NO'}</td><td ${td}>${f.plazas}</td>
       <td ${td}>${f.motivo}</td><td ${td}>${fechaMadrid(f.creado)}</td><td ${td}>${f.importe.toFixed(2)} €</td>
