@@ -24,12 +24,18 @@ module.exports = async (req, res) => {
     const resumen = Object.keys(TALLERES).map((k) => {
       const d = disp[k];
       return `<tr><td ${td}><b>${k}</b></td><td ${td}>${d.vendidas}</td><td ${td}>${d.extra}</td><td ${td}><b>${d.ocupadas} / ${d.plazas}</b></td><td ${td}>${d.quedan}</td><td ${td}>${d.motivo || ''}</td></tr>`;
-    }).join('');
+    }).join('') + (() => {
+      const b = filas.filter((f) => f.venta);
+      const n = b.reduce((a, f) => a + f.plazas, 0);
+      const e = b.reduce((a, f) => a + f.importe, 0);
+      return `<tr><td ${td}><b>Bonos regalo</b></td><td ${td}>${n} vendidos</td><td ${td}></td><td ${td}><b>${e.toFixed(2)} €</b></td><td ${td}></td><td ${td}>no ocupan plaza</td></tr>`;
+    })();
 
     const orden = Object.keys(TALLERES);
-    filas.sort((a, b) => a.creado - b.creado);
-    const rows = filas.map((f) => `<tr style="${f.cuenta ? '' : 'color:#aaa;'}">
-      <td ${td}>${f.clave || '—'}</td><td ${td}>${f.cuenta ? '✅ SÍ' : '❌ NO'}</td><td ${td}>${f.plazas}</td>
+    filas.sort((a, b) => a.creado - b.creado); // por fecha de compra: los más nuevos, abajo
+    const ok = (f) => f.cuenta || f.venta;
+    const rows = filas.map((f) => `<tr style="${ok(f) ? '' : 'color:#aaa;'}">
+      <td ${td}>${f.tipo === 'gift_voucher' ? 'Bono regalo' : (f.clave || '—')}</td><td ${td}>${ok(f) ? '✅ SÍ' : '❌ NO'}</td><td ${td}>${f.plazas}</td>
       <td ${td}>${f.motivo}</td><td ${td}>${fechaMadrid(f.creado)}</td><td ${td}>${f.importe.toFixed(2)} €</td>
       <td ${td}>${f.reembolsado ? f.reembolsado.toFixed(2) + ' €' : ''}</td><td ${td}>${f.codigo}</td><td ${td}>${f.tipo}</td><td ${td}>${f.id}</td></tr>`).join('');
 
