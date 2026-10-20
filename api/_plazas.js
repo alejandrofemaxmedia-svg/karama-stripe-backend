@@ -129,6 +129,11 @@ async function analizarSesion(s) {
     clave: null, plazas: 0, importe: (s.amount_total || 0) / 100, reembolsado: 0,
     codigo: '', cuenta: false, motivo: '',
   };
+  // Datos del cliente (solo los usa el panel de asistentes, protegido con clave).
+  const cd = s.customer_details || {};
+  out.nombre = cd.name || '';
+  out.email = cd.email || '';
+  out.telefono = cd.phone || '';
   if (m.type === 'gift_voucher') {
     // Compra de bono regalo: es una venta, pero no ocupa plaza en ninguna fecha.
     const ch = s.payment_intent && s.payment_intent.latest_charge;
