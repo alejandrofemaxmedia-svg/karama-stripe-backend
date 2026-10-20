@@ -34,6 +34,7 @@ const EXCLUIR = [];
 // descripcion  → lo que sale en Stripe y en el email.
 // plazas       → aforo total del taller.
 // extra        → plazas ocupadas que NO han pasado por la web. Puede ser negativo.
+// extraNombre  → (opcional) cómo sale ese extra en el panel de asistentes, ej. 'Colaboración'.
 // cerrada      → true = AGOTADO siempre, cuente lo que cuente.
 const TALLERES = {
   sep26: {
@@ -71,7 +72,7 @@ const TALLERES = {
   nov21: {
     inicio: '2026-11-21T17:00:00+01:00',
     descripcion: `Sábado 21 de noviembre, 17:00 a 20:00 · ${ADDRESS}`,
-    plazas: 18, extra: 0, cerrada: false,
+    plazas: 18, extra: 2, extraNombre: 'Colaboración', cerrada: false, // 2 plazas para una colaboración de Rosario
   },
   nov22: {
     inicio: '2026-11-22T10:30:00+01:00',

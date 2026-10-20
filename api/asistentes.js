@@ -51,6 +51,8 @@ module.exports = async (req, res) => {
         .map((f) => ({ id: f.id, nombre: nombreBonito(f.nombre, f.email), telefono: f.telefono, entradas: f.plazas, bono: !f.importe }));
       const web = reservas.reduce((a, r) => a + r.entradas, 0);
       const extra = TALLERES[k].extra || 0;
+      // Las plazas añadidas a mano (extra) salen como una fila más en la lista.
+      if (extra > 0) reservas.push({ id: 'extra-' + k, nombre: TALLERES[k].extraNombre || 'Reserva por fuera de la web', telefono: '', entradas: extra, manual: true });
       porFecha[k] = { reservas, web, extra, total: web + extra };
     });
 
@@ -69,7 +71,8 @@ module.exports = async (req, res) => {
       const d = porFecha[sel];
       const lista = d.reservas.map((r) => {
         const acomp = r.entradas - 1;
-        const detalle = acomp > 0 ? `${esc(r.nombre.split(' ')[0])} + ${acomp} acompañante${acomp > 1 ? 's' : ''}` : 'Viene sola/o';
+        const detalle = r.manual ? `${r.entradas} plaza${r.entradas > 1 ? 's' : ''} reservada${r.entradas > 1 ? 's' : ''} a mano`
+          : (acomp > 0 ? `${esc(r.nombre.split(' ')[0])} + ${acomp} acompañante${acomp > 1 ? 's' : ''}` : 'Viene sola/o');
         return `
         <label class="fila" data-id="${esc(r.id)}" data-n="${r.entradas}">
           <input type="checkbox" class="check">
@@ -90,7 +93,6 @@ module.exports = async (req, res) => {
           <div><b>${d.reservas.length}</b><span>reservas</span></div>
           <div><b id="llegados">0</b><span>han llegado</span></div>
         </div>
-        ${d.extra ? `<div class="res-extra">Incluye ${d.extra} plaza${d.extra > 1 ? 's' : ''} reservada${d.extra > 1 ? 's' : ''} por fuera de la web.</div>` : ''}
       </section>
       <section class="lista">${lista}</section>
       <p class="ayuda">Toca a cada persona cuando llegue para marcarla. Las marcas se guardan solo en este dispositivo.</p>`;
