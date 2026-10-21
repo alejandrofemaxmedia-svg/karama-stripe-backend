@@ -81,7 +81,38 @@ const TALLERES = {
   },
   nov29: {
     inicio: '2026-11-29T10:30:00+01:00',
-    descripcion: `Domingo 29 de noviembre, 10:30 a 13:30 · ${ADDRESS}`,
+    descripcion: `Domingo 29 de noviembre, 10:30 a 13:30 (Especial Navidad) · ${ADDRESS}`,
+    plazas: 18, extra: 0, cerrada: false,
+  },
+  // --- Diciembre · Especial Navidad ---
+  dic06: {
+    inicio: '2026-12-06T10:30:00+01:00',
+    descripcion: `Domingo 6 de diciembre, 10:30 a 13:30 (Especial Navidad) · ${ADDRESS}`,
+    plazas: 18, extra: 0, cerrada: false,
+  },
+  dic12: {
+    inicio: '2026-12-12T10:30:00+01:00',
+    descripcion: `Sábado 12 de diciembre, 10:30 a 13:30 (Especial Navidad) · ${ADDRESS}`,
+    plazas: 18, extra: 0, cerrada: false,
+  },
+  dic13: {
+    inicio: '2026-12-13T10:30:00+01:00',
+    descripcion: `Domingo 13 de diciembre, 10:30 a 13:30 (Especial Navidad) · ${ADDRESS}`,
+    plazas: 18, extra: 0, cerrada: false,
+  },
+  dic20: {
+    inicio: '2026-12-20T10:30:00+01:00',
+    descripcion: `Domingo 20 de diciembre, 10:30 a 13:30 (Especial Navidad) · ${ADDRESS}`,
+    plazas: 18, extra: 0, cerrada: false,
+  },
+  dic26: {
+    inicio: '2026-12-26T17:00:00+01:00',
+    descripcion: `Sábado 26 de diciembre, 17:00 a 20:00 (Especial Navidad) · ${ADDRESS}`,
+    plazas: 18, extra: 0, cerrada: false,
+  },
+  dic27: {
+    inicio: '2026-12-27T10:30:00+01:00',
+    descripcion: `Domingo 27 de diciembre, 10:30 a 13:30 (Especial Navidad) · ${ADDRESS}`,
     plazas: 18, extra: 0, cerrada: false,
   },
 };
