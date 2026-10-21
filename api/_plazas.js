@@ -67,7 +67,7 @@ const TALLERES = {
   nov15: {
     inicio: '2026-11-15T10:30:00+01:00',
     descripcion: `Domingo 15 de noviembre, 10:30 a 13:30 · ${ADDRESS}`,
-    plazas: 18, extra: 0, cerrada: false,
+    plazas: 18, extra: 2, extraNombre: 'Colaboración', cerrada: false, // 2 plazas para una colaboración de Rosario
   },
   nov21: {
     inicio: '2026-11-21T17:00:00+01:00',
