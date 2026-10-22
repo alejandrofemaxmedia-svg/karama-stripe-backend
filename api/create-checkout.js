@@ -16,6 +16,7 @@ const UNIT_AMOUNT = 5000; // 50,00 € en céntimos. Cámbialo aquí si sube el 
 const CURRENCY = 'eur';
 const MAX_QTY = 10; // máximo de plazas que se pueden reservar de una vez
 const PRODUCT_NAME = 'Taller de velas · Karama Candle';
+const PRODUCT_NAMES = { recipientes: 'Taller de recipientes · Karama Candle' };
 const ADDRESS = 'Unibertsitate Etorbidea, 8, Bilbao';
 
 // Aviso de política de cambios/devoluciones. Sale justo antes del botón de
@@ -98,7 +99,7 @@ module.exports = async (req, res) => {
       mode: 'payment',
       payment_method_types: ['card'],
       phone_number_collection: { enabled: true }, // Stripe pide el teléfono al pagar
-      allow_promotion_codes: true, // permite meter un código de abono regalo en la propia página de Stripe
+      allow_promotion_codes: taller.bonos !== false, // permite meter un código de bono regalo (no en las fechas con bonos: false)
       custom_text: {
         submit: { message: NO_REFUNDS_TEXT },
       },
@@ -107,10 +108,10 @@ module.exports = async (req, res) => {
           price_data: {
             currency: CURRENCY,
             product_data: {
-              name: PRODUCT_NAME,
+              name: PRODUCT_NAMES[taller.taller] || PRODUCT_NAME,
               description: taller.descripcion,
             },
-            unit_amount: UNIT_AMOUNT,
+            unit_amount: taller.precio || UNIT_AMOUNT,
           },
           quantity: qty,
         },
@@ -120,6 +121,7 @@ module.exports = async (req, res) => {
       metadata: {
         type: 'booking',
         date_key: dateKey,
+        taller: taller.taller || 'velas',
         date_description: taller.descripcion,
         quantity: String(qty),
       },

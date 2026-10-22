@@ -180,7 +180,8 @@ async function sendEmail(toEmail, subject, html) {
   }
 }
 
-async function sendGiftEmail(toEmail, codes, expiresAt) {
+async function sendGiftEmail(toEmail, codes, expiresAt, taller) {
+  const tallerBono = taller === 'recipientes' ? 'el taller de recipientes' : 'el taller de velas';
   const isPlural = codes.length > 1;
   const expiryText = expiresAt ? formatDateEs(expiresAt) : '';
 
@@ -201,7 +202,7 @@ async function sendGiftEmail(toEmail, codes, expiresAt) {
   const body = `
     <h1 class="text-ink" style="margin:0 0 14px; font-family:Georgia,serif; font-size:24px; color:${COLOR_INK};">¡Gracias por tu compra!</h1>
     <p class="text-ink-soft" style="margin:0 0 18px; font-size:15px; line-height:1.55; color:${COLOR_INK_SOFT};">
-      Aquí tienes ${isPlural ? 'tus códigos de bono regalo' : 'tu código de bono regalo'} para el taller de velas de Karama Candle:
+      Aquí tienes ${isPlural ? 'tus códigos de bono regalo' : 'tu código de bono regalo'} para ${tallerBono} de Karama Candle:
     </p>
     ${codesHtml}
     <p class="text-ink-soft" style="margin:22px 0 10px; font-size:14.5px; line-height:1.55; color:${COLOR_INK_SOFT};">
@@ -220,13 +221,14 @@ async function sendGiftEmail(toEmail, codes, expiresAt) {
   await sendEmail(toEmail, 'Tu bono regalo — Karama Candle', html);
 }
 
-async function sendBookingThanksEmail(toEmail, { dateDescription, quantity }) {
+async function sendBookingThanksEmail(toEmail, { dateDescription, quantity, taller }) {
+  const nombreTaller = taller === 'recipientes' ? 'el taller de recipientes' : 'el taller de velas';
   const plazasText = quantity > 1 ? `${quantity} plazas` : '1 plaza';
 
   const body = `
     <h1 class="text-ink" style="margin:0 0 14px; font-family:Georgia,serif; font-size:24px; color:${COLOR_INK};">¡Gracias por tu reserva!</h1>
     <p class="text-ink-soft" style="margin:0 0 18px; font-size:15px; line-height:1.55; color:${COLOR_INK_SOFT};">
-      Ya tienes tu plaza confirmada para el taller de velas de Karama Candle. Aquí tienes el resumen de tu reserva:
+      Ya tienes tu plaza confirmada para ${nombreTaller} de Karama Candle. Aquí tienes el resumen de tu reserva:
     </p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
       <tr>
@@ -319,7 +321,7 @@ module.exports = async (req, res) => {
           }
 
           if (buyerEmail) {
-            await sendGiftEmail(buyerEmail, codes, expiresAt);
+            await sendGiftEmail(buyerEmail, codes, expiresAt, metadata.taller);
           } else {
             console.error('No se encontró el email del comprador para mandar los códigos:', codes);
           }
@@ -336,6 +338,7 @@ module.exports = async (req, res) => {
           await sendBookingThanksEmail(buyerEmail, {
             dateDescription: metadata.date_description,
             quantity: parseInt(metadata.quantity, 10) || 1,
+            taller: metadata.taller,
           });
         } else {
           console.error('No se encontró el email del comprador para mandar el email de agradecimiento.');

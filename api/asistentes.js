@@ -23,6 +23,9 @@ function etiquetaFecha(k) {
   return TALLERES[k].descripcion.split(' · ')[0];
 }
 
+const tallerDe = (k) => TALLERES[k].taller || 'velas';
+const NOMBRE_TALLER = { velas: 'Velas', recipientes: 'Recipientes' };
+
 function etiquetaCorta(k) {
   const m = TALLERES[k].descripcion.match(/^(\S+)\s+(\d+) de (\p{L}+)/u);
   return m ? `${m[1].slice(0, 3)} ${m[2]} ${m[3].slice(0, 3)}` : k;
@@ -56,17 +59,25 @@ module.exports = async (req, res) => {
       porFecha[k] = { reservas, web, extra, total: web + extra };
     });
 
-    const sel = fechas.includes(q.fecha) ? q.fecha : fechas[0];
+    // Pestañas por taller. Por defecto se abre el taller de la fecha más cercana.
+    const taller = fechas.includes(q.fecha) ? tallerDe(q.fecha)
+      : (NOMBRE_TALLER[q.taller] ? q.taller : (fechas[0] ? tallerDe(fechas[0]) : 'velas'));
+    const fechasT = fechas.filter((k) => tallerDe(k) === taller);
+    const sel = fechasT.includes(q.fecha) ? q.fecha : fechasT[0];
     const clave = encodeURIComponent(q.clave);
+    const tabs = Object.keys(NOMBRE_TALLER).map((t) => {
+      const n = fechas.filter((k) => tallerDe(k) === t).length;
+      return `<a class="tab${t === taller ? ' on' : ''}" href="?clave=${clave}&taller=${t}">Taller de ${NOMBRE_TALLER[t].toLowerCase()}<small>${n} fecha${n === 1 ? '' : 's'}</small></a>`;
+    }).join('');
     const hora = new Date().toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' });
 
-    const chips = fechas.map((k) => `
+    const chips = fechasT.map((k) => `
       <a class="chip${k === sel ? ' on' : ''}" href="?clave=${clave}&fecha=${k}">
         <span class="chip-d">${esc(etiquetaCorta(k))}</span>
         <span class="chip-n">${porFecha[k].total} pers.</span>
       </a>`).join('');
 
-    let cuerpo = '<p class="vacio">No hay talleres próximos.</p>';
+    let cuerpo = `<p class="vacio">No hay talleres de ${NOMBRE_TALLER[taller].toLowerCase()} próximos.</p>`;
     if (sel) {
       const d = porFecha[sel];
       const lista = d.reservas.map((r) => {
@@ -117,7 +128,11 @@ module.exports = async (req, res) => {
   header h1{font-family:'Archivo Black',sans-serif;text-transform:uppercase;font-size:22px;letter-spacing:-.01em;margin-top:12px;}
   header p{font-family:'Fraunces',serif;font-style:italic;font-size:15px;color:var(--ink-soft);margin-top:2px;}
   .wrap{max-width:720px;margin:0 auto;padding:0 16px 40px;}
-  .chips{display:flex;gap:8px;overflow-x:auto;padding:16px 2px 6px;margin-top:-22px;scrollbar-width:none;}
+  .tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:5px;margin-top:-22px;position:relative;box-shadow:0 8px 20px rgba(46,38,34,.08);}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:1px;text-decoration:none;color:var(--ink);font-weight:800;font-size:14px;padding:10px 6px;border-radius:12px;}
+  .tab small{font-weight:600;font-size:11px;color:var(--stone);}
+  .tab.on{background:var(--blush);} 
+  .chips{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 6px;scrollbar-width:none;}
   .chips::-webkit-scrollbar{display:none;}
   .chip{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 14px;min-width:92px;box-shadow:0 6px 16px rgba(46,38,34,.06);}
   .chip-d{font-weight:800;font-size:13px;text-transform:capitalize;}
@@ -155,9 +170,10 @@ module.exports = async (req, res) => {
 <header>
   <img src="${LOGO_URL}" alt="Karama Candle">
   <h1>Lista de asistentes</h1>
-  <p>Talleres de velas · Bilbao</p>
+  <p>Talleres Karama · Bilbao</p>
 </header>
 <main class="wrap">
+  <nav class="tabs">${tabs}</nav>
   <nav class="chips">${chips}</nav>
   ${cuerpo}
   <p class="act">Actualizado a las ${hora} · se actualiza solo cada minuto</p>

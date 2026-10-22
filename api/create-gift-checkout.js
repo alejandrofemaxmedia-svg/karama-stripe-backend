@@ -13,10 +13,19 @@ const MAX_QTY = 10;
 const PRODUCT_NAME = 'Abono regalo · Taller de velas Karama Candle';
 const PRODUCT_DESCRIPTION = 'Vale para una plaza en cualquier fecha del taller de velas. Recibirás el código por email para regalarlo.';
 
+// Bonos de otros talleres (la landing manda taller: 'recipientes').
+const BONOS = {
+  recipientes: {
+    unit: 5500, // 55,00 €
+    name: 'Bono regalo · Taller de recipientes Karama Candle',
+    description: 'Vale para una plaza en cualquier fecha del taller de recipientes. Recibirás el código por email para regalarlo.',
+  },
+};
+
 // Aviso de política de cambios/devoluciones. Sale justo antes del botón de
 // pagar, en la propia pantalla de Stripe. Para cambiar el texto, solo hay
 // que editar esta línea.
-const NO_REFUNDS_TEXT = 'No se realizan devoluciones. No se admiten cambios con menos de 48h, salvo fuerza mayor con justificante.';
+const NO_REFUNDS_TEXT = 'No se realizan reembolsos de bonos regalo. El bono es válido durante 3 meses desde la compra. Para cambiar la fecha de una reserva hecha con bono, avísanos con un mínimo de 7 días de antelación (sujeto a disponibilidad).';
 
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGIN || '*')
   .split(',')
@@ -44,7 +53,8 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { quantity, returnUrl } = req.body || {};
+    const { quantity, returnUrl, taller } = req.body || {};
+    const bono = BONOS[taller];
     const qty = parseInt(quantity, 10);
 
     if (!Number.isInteger(qty) || qty < 1 || qty > MAX_QTY) {
@@ -66,10 +76,10 @@ module.exports = async (req, res) => {
           price_data: {
             currency: CURRENCY,
             product_data: {
-              name: PRODUCT_NAME,
-              description: PRODUCT_DESCRIPTION,
+              name: bono ? bono.name : PRODUCT_NAME,
+              description: bono ? bono.description : PRODUCT_DESCRIPTION,
             },
-            unit_amount: UNIT_AMOUNT,
+            unit_amount: bono ? bono.unit : UNIT_AMOUNT,
           },
           quantity: qty,
         },
@@ -79,6 +89,7 @@ module.exports = async (req, res) => {
       metadata: {
         type: 'gift_voucher',
         quantity: String(qty),
+        taller: bono ? taller : 'velas',
       },
       success_url: `${baseUrl}?regalo=confirmado`,
       cancel_url: `${baseUrl}?regalo=cancelado`,

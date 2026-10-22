@@ -36,6 +36,9 @@ const EXCLUIR = [];
 // extra        → plazas ocupadas que NO han pasado por la web. Puede ser negativo.
 // extraNombre  → (opcional) cómo sale ese extra en el panel de asistentes, ej. 'Colaboración'.
 // cerrada      → true = AGOTADO siempre, cuente lo que cuente.
+// taller       → (opcional) 'recipientes' para el taller de recipientes. Si no se pone, es taller de velas.
+// precio       → (opcional) precio por plaza en céntimos. Si no se pone, 5000 (50 €).
+// bonos        → (opcional) false = no se puede usar bono regalo en esta fecha.
 const TALLERES = {
   sep26: {
     inicio: '2026-09-26T17:00:00+02:00',
@@ -115,6 +118,13 @@ const TALLERES = {
     descripcion: `Domingo 27 de diciembre, 10:30 a 13:30 (Especial Navidad) · ${ADDRESS}`,
     plazas: 18, extra: 0, cerrada: false,
   },
+  // --- TALLER DE RECIPIENTES (55 €) ---
+  rec_nov28: {
+    taller: 'recipientes', precio: 5500,
+    inicio: '2026-11-28T10:30:00+01:00',
+    descripcion: `Sábado 28 de noviembre, 10:30 a 13:30 (Taller de recipientes) · ${ADDRESS}`,
+    plazas: 18, extra: 0, cerrada: false,
+  },
 };
 
 // Hasta cuántos días atrás se buscan pedidos en Stripe.
@@ -171,6 +181,7 @@ async function analizarSesion(s) {
     const ch = s.payment_intent && s.payment_intent.latest_charge;
     out.reembolsado = ((ch && ch.amount_refunded) || 0) / 100;
     out.plazas = parseInt(m.quantity, 10) || 0;
+    out.taller = m.taller || 'velas'; // de qué taller es el bono
     out.venta = s.amount_total > 0 && out.reembolsado * 100 < s.amount_total;
     out.motivo = out.venta ? 'bono regalo pagado' : (s.amount_total > 0 ? 'bono reembolsado' : 'bono a 0 € (prueba)');
     return out;
@@ -202,7 +213,7 @@ async function analizarSesion(s) {
   const charge = s.payment_intent && s.payment_intent.latest_charge;
   out.reembolsado = ((charge && charge.amount_refunded) || 0) / 100;
   if (s.amount_total > 0 && out.reembolsado * 100 >= s.amount_total) { out.motivo = 'reembolsado'; return out; }
-  if (out.reembolsado > 0) out.plazas = Math.max(0, out.plazas - Math.round((out.reembolsado * 100) / UNIT_AMOUNT));
+  if (out.reembolsado > 0) out.plazas = Math.max(0, out.plazas - Math.round((out.reembolsado * 100) / (TALLERES[out.clave].precio || UNIT_AMOUNT)));
 
   if (!s.amount_total) {
     out.codigo = await codigoDescuento(s);
