@@ -42,6 +42,19 @@ function setCors(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
+
+// De dónde viene la compra, leído de la dirección de la página desde la que se paga.
+// Los botones de los correos de recuperación llevan ?utm_source=email&utm_content=correo1 (2, 3).
+function origenDe(url) {
+  try {
+    const p = new URL(url).searchParams;
+    if (p.get('utm_source') === 'email') return 'email-' + (p.get('utm_content') || 'sin-numero');
+    return p.get('utm_source') || 'web';
+  } catch (e) {
+    return 'web';
+  }
+}
+
 module.exports = async (req, res) => {
   setCors(req, res);
 
@@ -90,6 +103,7 @@ module.exports = async (req, res) => {
         type: 'gift_voucher',
         quantity: String(qty),
         taller: bono ? taller : 'velas',
+        origen: origenDe(returnUrl),
       },
       success_url: `${baseUrl}?regalo=confirmado`,
       cancel_url: `${baseUrl}?regalo=cancelado`,

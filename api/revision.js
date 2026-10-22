@@ -36,6 +36,16 @@ module.exports = async (req, res) => {
       const e = b.reduce((a, f) => a + f.importe, 0);
       return `<tr><td ${td}><b>Bonos regalo</b></td><td ${td}>${n} vendidos</td><td ${td}></td><td ${td}><b>${e.toFixed(2)} €</b></td><td ${td}></td><td ${td}>no ocupan plaza</td></tr>`;
     })();
+    // Ventas que vienen de los correos de recuperación (solo pedidos que cuentan).
+    const deCorreo = {};
+    filas.filter((f) => (f.cuenta || f.venta) && f.origen && f.origen.startsWith('email-')).forEach((f) => {
+      const k = f.origen.slice(6);
+      deCorreo[k] = deCorreo[k] || { pedidos: 0, plazas: 0, euros: 0 };
+      deCorreo[k].pedidos += 1; deCorreo[k].plazas += f.plazas; deCorreo[k].euros += f.importe;
+    });
+    const correos = Object.keys(deCorreo).sort().map((k) => `<tr><td ${td}><b>${k}</b></td><td ${td}>${deCorreo[k].pedidos}</td><td ${td}>${deCorreo[k].plazas}</td><td ${td}><b>${deCorreo[k].euros.toFixed(2)} €</b></td></tr>`).join('')
+      || `<tr><td ${td} colspan="4">Todavía no hay ventas que vengan de los correos.</td></tr>`;
+    const tablaCorreos = `<h3 style="margin:18px 0 8px;">Ventas desde los correos de recuperación</h3><table style="border-collapse:collapse;margin-bottom:22px;"><tr><th ${th}>Correo</th><th ${th}>Pedidos</th><th ${th}>Plazas / bonos</th><th ${th}>Importe</th></tr>${correos}</table>`;
     const resumen = Object.keys(NOMBRE).map((t) => `<h3 style="margin:18px 0 8px;">${NOMBRE[t]}</h3><table style="border-collapse:collapse;margin-bottom:22px;">${cabecera}${resumenDe(t)}</table>`).join('');
 
     const orden = Object.keys(TALLERES);
@@ -44,15 +54,16 @@ module.exports = async (req, res) => {
     const rows = filas.map((f) => `<tr style="${ok(f) ? '' : 'color:#aaa;'}">
       <td ${td}>${f.tipo === 'gift_voucher' ? 'Bono regalo' : (f.clave || '—')}</td><td ${td}>${tallerFila(f) === '—' ? '—' : NOMBRE[tallerFila(f)].replace('Taller de ', '')}</td><td ${td}>${ok(f) ? '✅ SÍ' : '❌ NO'}</td><td ${td}>${f.plazas}</td>
       <td ${td}>${f.motivo}</td><td ${td}>${fechaMadrid(f.creado)}</td><td ${td}>${f.importe.toFixed(2)} €</td>
-      <td ${td}>${f.reembolsado ? f.reembolsado.toFixed(2) + ' €' : ''}</td><td ${td}>${f.codigo}</td><td ${td}>${f.tipo}</td><td ${td}>${f.id}</td></tr>`).join('');
+      <td ${td}>${f.reembolsado ? f.reembolsado.toFixed(2) + ' €' : ''}</td><td ${td}>${f.codigo}</td><td ${td}>${f.tipo}</td><td ${td}>${f.origen ? (f.origen.startsWith('email-') ? '✉️ ' + f.origen.slice(6) : f.origen) : '—'}</td><td ${td}>${f.id}</td></tr>`).join('');
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).send(`<!doctype html><meta charset="utf-8"><body style="font-family:Arial,sans-serif;font-size:13px;color:#2E2622;padding:20px;">
       <h2>Resumen por fecha</h2>
       ${resumen}
+      ${tablaCorreos}
       <h2>Pedido por pedido</h2>
-      <table style="border-collapse:collapse;"><tr><th ${th}>Fecha taller</th><th ${th}>Taller</th><th ${th}>¿Cuenta?</th><th ${th}>Personas</th><th ${th}>Motivo</th><th ${th}>Creado</th><th ${th}>Importe</th><th ${th}>Reembolsado</th><th ${th}>Código</th><th ${th}>Tipo</th><th ${th}>ID</th></tr>${rows}</table>
+      <table style="border-collapse:collapse;"><tr><th ${th}>Fecha taller</th><th ${th}>Taller</th><th ${th}>¿Cuenta?</th><th ${th}>Personas</th><th ${th}>Motivo</th><th ${th}>Creado</th><th ${th}>Importe</th><th ${th}>Reembolsado</th><th ${th}>Código</th><th ${th}>Tipo</th><th ${th}>Origen</th><th ${th}>ID</th></tr>${rows}</table>
     </body>`);
   } catch (err) {
     console.error(err);

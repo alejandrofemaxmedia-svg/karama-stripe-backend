@@ -176,6 +176,7 @@ async function analizarSesion(s) {
   out.nombre = cd.name || '';
   out.email = cd.email || '';
   out.telefono = cd.phone || '';
+  out.origen = m.origen || ''; // web, ig, fb, email-correo1…
   if (m.type === 'gift_voucher') {
     // Compra de bono regalo: es una venta, pero no ocupa plaza en ninguna fecha.
     const ch = s.payment_intent && s.payment_intent.latest_charge;
