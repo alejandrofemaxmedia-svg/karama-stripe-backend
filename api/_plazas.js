@@ -270,4 +270,4 @@ async function getDisponibilidad() {
   return out;
 }
 
-module.exports = { stripe, ADDRESS, TALLERES, AVISO_ULTIMAS, claveDeSesion, analizarTodo, getDisponibilidad };
+module.exports = { stripe, ADDRESS, TALLERES, AVISO_ULTIMAS, claveDeSesion, codigoDescuento, analizarTodo, getDisponibilidad };

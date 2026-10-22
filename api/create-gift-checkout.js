@@ -10,6 +10,10 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const UNIT_AMOUNT = 5000; // 50,00 € en céntimos. Debe coincidir con el precio del taller.
 const CURRENCY = 'eur';
 const MAX_QTY = 10;
+
+// PRUEBAS: true = en la página de pago del bono se puede meter un código de descuento.
+// Después de las pruebas, ponlo en false y vuelve a subir este archivo.
+const PERMITIR_CODIGOS_EN_BONOS = true;
 const PRODUCT_NAME = 'Abono regalo · Taller de velas Karama Candle';
 const PRODUCT_DESCRIPTION = 'Vale para una plaza en cualquier fecha del taller de velas. Recibirás el código por email para regalarlo.';
 
@@ -81,6 +85,7 @@ module.exports = async (req, res) => {
       mode: 'payment',
       payment_method_types: ['card'],
       phone_number_collection: { enabled: true }, // Stripe pide el teléfono al pagar
+      allow_promotion_codes: PERMITIR_CODIGOS_EN_BONOS,
       custom_text: {
         submit: { message: NO_REFUNDS_TEXT },
       },

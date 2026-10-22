@@ -12,7 +12,7 @@
 
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-const { TALLERES, claveDeSesion, getDisponibilidad } = require('./_plazas');
+const { TALLERES, claveDeSesion, codigoDescuento, getDisponibilidad } = require('./_plazas');
 
 // A quién se avisa cuando una fecha se agota. Se puede cambiar con la
 // variable de entorno NOTIFY_EMAIL en Vercel (varios separados por coma).
@@ -304,7 +304,11 @@ module.exports = async (req, res) => {
       try {
         const qty = parseInt(metadata.quantity, 10) || 1;
 
-        if (!GIFT_COUPON_ID) {
+        // Seguridad: un bono pagado a 0 € con otro bono (KARAMA-...) no genera códigos nuevos.
+        const codigoUsado = session.amount_total ? '' : await codigoDescuento(session);
+        if (/^KARAMA-/i.test(codigoUsado)) {
+          console.error('Bono pagado con otro bono regalo (' + codigoUsado + '): no se generan códigos.', session.id);
+        } else if (!GIFT_COUPON_ID) {
           console.error('Falta configurar GIFT_COUPON_ID en las variables de entorno.');
         } else {
           const codes = [];
