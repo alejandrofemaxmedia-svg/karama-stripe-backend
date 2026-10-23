@@ -70,7 +70,10 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { quantity, returnUrl, taller } = req.body || {};
+    const { quantity, returnUrl, taller, email } = req.body || {};
+    // Si la página nos manda el email (formulario de la landing), Stripe lo trae ya escrito.
+    const emailOk = typeof email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim()) ? email.trim().toLowerCase() : undefined;
+
     const bono = BONOS[taller];
     const qty = parseInt(quantity, 10);
 
@@ -85,6 +88,7 @@ module.exports = async (req, res) => {
       mode: 'payment',
       payment_method_types: ['card'],
       phone_number_collection: { enabled: true }, // Stripe pide el teléfono al pagar
+      customer_email: emailOk,
       allow_promotion_codes: PERMITIR_CODIGOS_EN_BONOS,
       custom_text: {
         submit: { message: NO_REFUNDS_TEXT },

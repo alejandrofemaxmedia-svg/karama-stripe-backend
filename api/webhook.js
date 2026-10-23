@@ -19,6 +19,27 @@ const { TALLERES, claveDeSesion, codigoDescuento, getDisponibilidad } = require(
 const NOTIFY_EMAILS = (process.env.NOTIFY_EMAIL || 'alejandro.femaxmedia@gmail.com,karamacandle@gmail.com')
   .split(',').map((s) => s.trim()).filter(Boolean);
 
+// Hoja de leads del formulario de RECIPIENTES: cuando alguien paga recipientes
+// (reserva o bono), se marca "Pagado = Sí" en su fila.
+const RECIPIENTES_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwW0SkcPT6ivhXiEIydq8jSTEoqB1xMkxLpQv22vzmz3WtD5koa-dQKRn9Yr4Z2qzjuXw/exec';
+const RECIPIENTES_SHEET_CLAVE = 'karama-rec-2026';
+
+async function marcarPagadoEnHoja(session) {
+  const m = session.metadata || {};
+  const email = session.customer_details && session.customer_details.email;
+  if (m.taller !== 'recipientes' || !email) return;
+  try {
+    await fetch(RECIPIENTES_SHEET_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ accion: 'pagado', clave: RECIPIENTES_SHEET_CLAVE, email }),
+      redirect: 'follow',
+    });
+  } catch (err) {
+    console.error('No se pudo marcar el pago en la hoja de recipientes:', err.message);
+  }
+}
+
 const GIFT_COUPON_ID = process.env.GIFT_COUPON_ID; // el ID del Cupón "100% descuento" creado en Stripe
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RESEND_FROM = process.env.RESEND_FROM || 'Karama Candle <onboarding@resend.dev>';
@@ -297,6 +318,7 @@ module.exports = async (req, res) => {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
+    await marcarPagadoEnHoja(session); // solo actúa si es de recipientes
     const metadata = session.metadata || {};
     const buyerEmail = session.customer_details && session.customer_details.email;
 
