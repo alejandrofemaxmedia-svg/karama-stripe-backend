@@ -85,7 +85,7 @@ const TALLERES = {
   nov29: {
     inicio: '2026-11-29T10:30:00+01:00',
     descripcion: `Domingo 29 de noviembre, 10:30 a 13:30 (Especial Navidad) · ${ADDRESS}`,
-    plazas: 18, extra: 0, cerrada: false,
+    plazas: 18, extra: 2, cerrada: false, // 2 plazas reservadas por fuera de la web
   },
   // --- Diciembre · Especial Navidad ---
   dic06: {
