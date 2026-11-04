@@ -123,7 +123,7 @@ const TALLERES = {
     taller: 'recipientes', precio: 5500,
     inicio: '2026-11-28T10:30:00+01:00',
     descripcion: `Sábado 28 de noviembre, 10:30 a 13:30 (Taller de recipientes) · ${ADDRESS}`,
-    plazas: 18, extra: 0, cerrada: false,
+    plazas: 15, extra: 0, cerrada: false,
   },
 };
 
