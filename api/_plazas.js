@@ -65,7 +65,7 @@ const TALLERES = {
   nov07: {
     inicio: '2026-11-07T17:00:00+01:00',
     descripcion: `Sábado 7 de noviembre, 17:00 a 20:00 · ${ADDRESS}`,
-    plazas: 18, extra: 0, cerrada: false,
+    plazas: 18, extra: -2, cerrada: false,
   },
   nov15: {
     inicio: '2026-11-15T10:30:00+01:00',
