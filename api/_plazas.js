@@ -65,7 +65,7 @@ const TALLERES = {
   nov07: {
     inicio: '2026-11-07T17:00:00+01:00',
     descripcion: `Sábado 7 de noviembre, 17:00 a 20:00 · ${ADDRESS}`,
-    plazas: 18, extra: -2, cerrada: false,
+    plazas: 18, extra: -2, cerrada: false, // se liberaron 2 plazas pagadas en la web (cancelación sin reembolso en Stripe)
   },
   nov15: {
     inicio: '2026-11-15T10:30:00+01:00',
@@ -75,7 +75,7 @@ const TALLERES = {
   nov21: {
     inicio: '2026-11-21T17:00:00+01:00',
     descripcion: `Sábado 21 de noviembre, 17:00 a 20:00 · ${ADDRESS}`,
-    plazas: 18, extra: 2, extraNombre: 'Colaboración', cerrada: false, // 2 plazas para una colaboración de Rosario
+    plazas: 18, extra: 3, extraNombre: 'Colaboración', cerrada: false, // 2 de colaboración de Rosario + 1 reservada por fuera
   },
   nov22: {
     inicio: '2026-11-22T10:30:00+01:00',
