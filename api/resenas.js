@@ -27,6 +27,16 @@ const { stripe, TALLERES, analizarSesion, DIAS_ATRAS } = require('./_plazas');
 const GOOGLE_REVIEW_URL = 'PEGA_AQUI_EL_ENLACE_DE_RESENAS';
 // ⬆⬆⬆ ------------------------------------------------------------------- ⬆⬆⬆
 
+// --- PRUEBAS (borrar este bloque cuando terminen las pruebas) ---
+// Dos talleres falsos que solo existen aquí (no salen en la web ni en los paneles).
+// Su único "asistente" es PRUEBA_EMAIL. Se envían aunque falte el enlace de Google.
+const PRUEBA_EMAIL = 'alejandro.femaxmedia@gmail.com';
+const TALLERES_PRUEBA = {
+  prueba_manana: { inicio: '2026-11-13T10:00:00+01:00', etiqueta: 'PRUEBA mañana' }, // termina 13:00 → correo esa tarde
+  prueba_tarde: { inicio: '2026-11-13T17:00:00+01:00', etiqueta: 'PRUEBA tarde' },   // termina 20:00 → correo al día siguiente
+};
+// --- fin PRUEBAS ---
+
 const CLAVE = 'karama2026';
 const DURACION_HORAS = 3;      // lo que dura un taller (para saber cuándo termina)
 const VENTANA_DIAS = 3;        // talleres terminados hace como mucho estos días
@@ -87,29 +97,35 @@ function emailHtml() {
 </body></html>`;
 }
 
-async function enviar(to) {
+async function enviar(to, asunto) {
   if (!RESEND_API_KEY) throw new Error('Falta RESEND_API_KEY en Vercel');
   const resp = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: RESEND_FROM, to, subject: ASUNTO, html: emailHtml() }),
+    body: JSON.stringify({ from: RESEND_FROM, to, subject: asunto || ASUNTO, html: emailHtml() }),
   });
   if (!resp.ok) throw new Error(`Resend ${resp.status}: ${await resp.text()}`);
 }
 
 // Talleres a los que toca mandar el correo ahora (o la fecha pedida a mano).
 function talleresATratar(fechaManual) {
-  if (fechaManual) return TALLERES[fechaManual] ? [fechaManual] : [];
+  const todos = Object.assign({}, TALLERES, TALLERES_PRUEBA);
+  if (fechaManual) return todos[fechaManual] ? [fechaManual] : [];
   const ahora = Date.now();
-  return Object.keys(TALLERES).filter((k) => {
-    const fin = finDe(TALLERES[k]);
-    return fin <= ahora && fin >= ahora - VENTANA_DIAS * 86400 * 1000;
+  return Object.keys(todos).filter((k) => {
+    const fin = finDe(todos[k]);
+    // Las pruebas no se marcan en Stripe, así que solo cuentan el día siguiente a terminar (24 h).
+    const ventana = TALLERES_PRUEBA[k] ? 1 : VENTANA_DIAS;
+    return fin <= ahora && fin >= ahora - ventana * 86400 * 1000;
   });
 }
 
 // Personas (agrupadas por email) que reservaron esas fechas y cuentan como plaza.
-async function destinatarios(claves) {
-  if (!claves.length) return [];
+async function destinatarios(clavesTodas) {
+  const pruebas = clavesTodas.filter((k) => TALLERES_PRUEBA[k])
+    .map((k) => ({ clave: k, email: PRUEBA_EMAIL, nombre: 'Prueba', sesiones: [], yaEnviado: false, prueba: true }));
+  const claves = clavesTodas.filter((k) => !TALLERES_PRUEBA[k]);
+  if (!claves.length) return pruebas;
   const desde = Math.floor(Date.now() / 1000) - DIAS_ATRAS * 86400;
   const sesiones = [];
   await stripe.checkout.sessions
@@ -127,7 +143,7 @@ async function destinatarios(claves) {
     porEmail[key].sesiones.push(s.id);
     if (m.resena_enviada) porEmail[key].yaEnviado = true;
   }
-  return Object.values(porEmail);
+  return pruebas.concat(Object.values(porEmail));
 }
 
 module.exports = async (req, res) => {
@@ -151,23 +167,21 @@ module.exports = async (req, res) => {
     if (q.ver) {
       return res.status(200).json({
         enlace_listo: enlaceListo(),
-        talleres: claves.map((k) => ({ clave: k, termina: new Date(finDe(TALLERES[k])).toISOString(), descripcion: TALLERES[k].descripcion })),
+        talleres: claves.map((k) => { const t = TALLERES[k] || TALLERES_PRUEBA[k]; return { clave: k, termina: new Date(finDe(t)).toISOString(), descripcion: t.descripcion || t.etiqueta }; }),
         recibirian: lista.filter((d) => !d.yaEnviado).map((d) => ({ fecha: d.clave, nombre: d.nombre, email: d.email })),
         ya_enviados: lista.filter((d) => d.yaEnviado).map((d) => ({ fecha: d.clave, email: d.email })),
       });
     }
 
     // 3) Envío real (lo lanza el cron, o a mano con la clave).
-    if (!enlaceListo()) {
-      console.log('Reseñas: falta pegar GOOGLE_REVIEW_URL, no se envía nada.');
-      return res.status(200).json({ ok: true, enviados: 0, aviso: 'Falta el enlace de reseñas de Google' });
-    }
+    // Sin enlace de Google solo salen las pruebas; a clientes reales no se envía nada.
+    const aEnviar = lista.filter((d) => !d.yaEnviado && (d.prueba || enlaceListo()));
+    if (!enlaceListo()) console.log('Reseñas: falta GOOGLE_REVIEW_URL; solo se envían pruebas.');
     const enviados = [];
     const errores = [];
-    for (const d of lista) {
-      if (d.yaEnviado) continue;
+    for (const d of aEnviar) {
       try {
-        await enviar(d.email);
+        await enviar(d.email, d.prueba ? `[${TALLERES_PRUEBA[d.clave].etiqueta}] ${ASUNTO}` : ASUNTO);
         const hoy = new Date().toISOString().slice(0, 10);
         for (const id of d.sesiones) await stripe.checkout.sessions.update(id, { metadata: { resena_enviada: hoy } });
         enviados.push({ fecha: d.clave, email: d.email });
@@ -178,7 +192,7 @@ module.exports = async (req, res) => {
       await esperar(600); // Resend admite ~2 envíos por segundo
     }
     console.log('Reseñas enviadas:', enviados.length, 'errores:', errores.length);
-    return res.status(200).json({ ok: true, talleres: claves, enviados, errores });
+    return res.status(200).json({ ok: true, enlace_listo: enlaceListo(), talleres: claves, enviados, errores });
   } catch (err) {
     console.error('Error en reseñas:', err);
     return res.status(500).json({ error: err.message });
