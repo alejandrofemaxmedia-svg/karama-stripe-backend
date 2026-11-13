@@ -1,0 +1,8 @@
+{
+  "crons": [
+    { "path": "/api/resenas", "schedule": "0 16 * * *" }
+  ],
+  "functions": {
+    "api/resenas.js": { "maxDuration": 60 }
+  }
+}
