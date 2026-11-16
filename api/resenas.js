@@ -24,18 +24,13 @@
 const { stripe, TALLERES, analizarSesion, DIAS_ATRAS } = require('./_plazas');
 
 // ⬇⬇⬇ PEGA AQUÍ EL ENLACE DE RESEÑAS DE GOOGLE (el g.page/r/... de Rosario) ⬇⬇⬇
-const GOOGLE_REVIEW_URL = 'PEGA_AQUI_EL_ENLACE_DE_RESENAS';
+const GOOGLE_REVIEW_URL = 'https://g.page/r/CQreN5Jr-xcdEAE/review';
 // ⬆⬆⬆ ------------------------------------------------------------------- ⬆⬆⬆
 
-// --- PRUEBAS (borrar este bloque cuando terminen las pruebas) ---
-// Dos talleres falsos que solo existen aquí (no salen en la web ni en los paneles).
-// Su único "asistente" es PRUEBA_EMAIL. Se envían aunque falte el enlace de Google.
+// Pruebas terminadas (13–14 nov 2026). Para repetirlas, añade aquí talleres falsos
+// como { prueba_x: { inicio: '2026-..T10:00:00+01:00', etiqueta: 'PRUEBA x' } }.
 const PRUEBA_EMAIL = 'alejandro.femaxmedia@gmail.com';
-const TALLERES_PRUEBA = {
-  prueba_manana: { inicio: '2026-11-13T10:00:00+01:00', etiqueta: 'PRUEBA mañana' }, // termina 13:00 → correo esa tarde
-  prueba_tarde: { inicio: '2026-11-13T17:00:00+01:00', etiqueta: 'PRUEBA tarde' },   // termina 20:00 → correo al día siguiente
-};
-// --- fin PRUEBAS ---
+const TALLERES_PRUEBA = {};
 
 const CLAVE = 'karama2026';
 const DURACION_HORAS = 3;      // lo que dura un taller (para saber cuándo termina)
