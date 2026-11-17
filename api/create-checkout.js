@@ -116,7 +116,9 @@ module.exports = async (req, res) => {
       payment_method_types: ['card'],
       phone_number_collection: { enabled: true }, // Stripe pide el teléfono al pagar
       customer_email: emailOk,
-      allow_promotion_codes: taller.bonos !== false, // permite meter un código de bono regalo (no en las fechas con bonos: false)
+      // Código de bono regalo: solo en reservas de 1 plaza. El cupón es del 100 %, así que con
+      // 2 o más plazas un solo código dejaría todas a 0 €. Para usar varios códigos, una reserva por código.
+      allow_promotion_codes: taller.bonos !== false && qty === 1,
       custom_text: {
         submit: { message: NO_REFUNDS_TEXT },
       },
