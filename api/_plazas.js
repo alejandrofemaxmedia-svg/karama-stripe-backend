@@ -118,11 +118,39 @@ const TALLERES = {
     descripcion: `Domingo 27 de diciembre, 10:30 a 13:30 (Especial Navidad) · ${ADDRESS}`,
     plazas: 18, extra: 0, cerrada: false,
   },
+  // --- ENERO 2027 ---
+  ene09: {
+    inicio: '2027-01-09T17:00:00+01:00',
+    descripcion: `Sábado 9 de enero, 17:00 a 20:00 · ${ADDRESS}`,
+    plazas: 18, extra: 0, cerrada: false,
+  },
+  ene15: {
+    inicio: '2027-01-15T17:00:00+01:00',
+    descripcion: `Viernes 15 de enero, 17:00 a 20:00 · ${ADDRESS}`,
+    plazas: 18, extra: 0, cerrada: false,
+  },
+  ene24: {
+    inicio: '2027-01-24T10:30:00+01:00',
+    descripcion: `Domingo 24 de enero, 10:30 a 13:30 · ${ADDRESS}`,
+    plazas: 18, extra: 0, cerrada: false,
+  },
   // --- TALLER DE RECIPIENTES (55 €) ---
   rec_nov28: {
     taller: 'recipientes', precio: 5500,
     inicio: '2026-11-28T10:30:00+01:00',
     descripcion: `Sábado 28 de noviembre, 10:30 a 13:30 (Taller de recipientes) · ${ADDRESS}`,
+    plazas: 15, extra: 0, cerrada: false,
+  },
+  rec_ene17: {
+    taller: 'recipientes', precio: 5500,
+    inicio: '2027-01-17T10:30:00+01:00',
+    descripcion: `Domingo 17 de enero, 10:30 a 13:30 (Taller de recipientes) · ${ADDRESS}`,
+    plazas: 15, extra: 0, cerrada: false,
+  },
+  rec_ene23: {
+    taller: 'recipientes', precio: 5500,
+    inicio: '2027-01-23T10:30:00+01:00',
+    descripcion: `Sábado 23 de enero, 10:30 a 13:30 (Taller de recipientes) · ${ADDRESS}`,
     plazas: 15, extra: 0, cerrada: false,
   },
 };
