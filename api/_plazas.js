@@ -111,7 +111,7 @@ const TALLERES = {
   dic26: {
     inicio: '2026-12-26T17:00:00+01:00',
     descripcion: `Sábado 26 de diciembre, 17:00 a 20:00 (Especial Navidad) · ${ADDRESS}`,
-    plazas: 18, extra: 0, cerrada: false,
+    plazas: 18, extra: 1, extraNombre: 'Jennifer (reserva aparte)', cerrada: false,
   },
   dic27: {
     inicio: '2026-12-27T10:30:00+01:00',
