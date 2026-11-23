@@ -130,8 +130,8 @@ const TALLERES = {
     plazas: 18, extra: 0, cerrada: false,
   },
   ene24: {
-    inicio: '2027-01-24T10:30:00+01:00',
-    descripcion: `Domingo 24 de enero, 10:30 a 13:30 · ${ADDRESS}`,
+    inicio: '2027-01-24T11:00:00+01:00',
+    descripcion: `Domingo 24 de enero, 11:00 a 14:00 · ${ADDRESS}`,
     plazas: 18, extra: 0, cerrada: false,
   },
   // --- TALLER DE RECIPIENTES (55 €) ---
