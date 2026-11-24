@@ -12,6 +12,7 @@
 //   ✘ Reservas reembolsadas (si el reembolso es parcial, se restan las plazas devueltas).
 //   ✘ Compras de bonos regalo (no tienen fecha).
 //   ✘ Pedidos cuyo ID esté en EXCLUIR.
+//   ↪ Si el pago tiene el metadato "fecha_nueva", cuenta en esa fecha (cambio de fecha).
 // Comprobar pedido a pedido: /api/revision?clave=karama2026
 
 const Stripe = require('stripe');
@@ -217,6 +218,18 @@ async function analizarSesion(s) {
   }
 
   out.clave = claveDeSesion(s);
+
+  // Cambio de fecha hecho a mano: en Stripe, en el pago, se añade el metadato
+  // "fecha_nueva" con la clave del taller (ej. ene24) o el texto "24 de enero".
+  // Con "aplazada" la reserva deja de ocupar plaza hasta que se le ponga fecha.
+  const pi = s.payment_intent && typeof s.payment_intent === 'object' ? s.payment_intent : null;
+  const fechaNueva = String((pi && pi.metadata && pi.metadata.fecha_nueva) || m.fecha_nueva || '').trim();
+  if (fechaNueva) {
+    if (/^aplazad/i.test(fechaNueva)) { out.clave = null; out.motivo = 'aplazada (sin fecha nueva)'; return out; }
+    const nueva = TALLERES[fechaNueva] ? fechaNueva : claveDeTexto(fechaNueva);
+    if (nueva) { out.fechaOriginal = out.clave; out.clave = nueva; }
+    else console.error('fecha_nueva no reconocida en', s.id, fechaNueva);
+  }
   out.plazas = parseInt(m.quantity, 10) || 0;
 
   // Pedidos antiguos sin datos: miramos el producto que se vendió.
