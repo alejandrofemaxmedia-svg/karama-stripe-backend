@@ -28,8 +28,20 @@
 const { stripe, TALLERES, analizarSesion, DIAS_ATRAS } = require('./_plazas');
 
 // ⬇⬇⬇ CAMBIAR A true CUANDO ROSARIO DÉ EL OK ⬇⬇⬇
-const ACTIVO = false;
+const ACTIVO = true;
 // ⬆⬆⬆ ---------------------------------------- ⬆⬆⬆
+
+// Talleres FALSOS de prueba: el recordatorio llega solo a PRUEBA_EMAIL, a la hora
+// real (cron), aunque ACTIVO sea false. No tocan plazas ni Stripe.
+// Cuando termines de probar, deja TALLERES_PRUEBA = {}.
+const PRUEBA_EMAIL = 'alejandro.femaxmedia@gmail.com';
+const TALLERES_PRUEBA = {
+  prueba_26nov: {
+    inicio: '2026-11-26T11:00:00+01:00',
+    descripcion: 'Jueves 26 de noviembre, 11:00 a 14:00 · PRUEBA',
+    nombre: 'Alejandro', plazas: 2,
+  },
+};
 
 const CLAVE = 'karama2026';
 const HORAS_MIN = 6;   // no se manda si al taller le quedan menos de 6 h
@@ -67,7 +79,7 @@ function primerNombre(nombre) {
 
 // Datos del taller listos para el correo.
 function datosTaller(clave) {
-  const t = TALLERES[clave];
+  const t = TALLERES[clave] || TALLERES_PRUEBA[clave];
   const desc = t.descripcion || '';
   const dia = desc.split(',')[0].trim();                       // "Domingo 24 de enero"
   const h = desc.match(/(\d{1,2}:\d{2})\s*a\s*(\d{1,2}:\d{2})/); // 11:00 a 14:00
@@ -146,7 +158,7 @@ function emailHtml({ nombre, clave, plazas }) {
         </table>
         <table role="presentation" cellpadding="0" cellspacing="0" style="margin:16px 0 2px;"><tr>
           <td class="bg-ink" bgcolor="${INK}" style="background:${INK}; border-radius:100px;">
-            <a href="${MAPS_URL}" target="_blank" class="text-blush" style="display:inline-block; padding:12px 24px; font-family:Arial,sans-serif; font-size:13.5px; font-weight:bold; letter-spacing:0.5px; color:${BLUSH}; text-decoration:none; border-radius:100px;">VER EN GOOGLE MAPS →</a>
+            <a href="${MAPS_URL}" target="_blank" class="text-blush" style="display:inline-block; padding:12px 22px; font-family:Arial,sans-serif; font-size:13px; font-weight:bold; letter-spacing:0.3px; white-space:nowrap; color:${BLUSH}; text-decoration:none; border-radius:100px;">VER EN GOOGLE MAPS&nbsp;→</a>
           </td></tr></table>
       </td></tr>
     </table>
@@ -206,19 +218,25 @@ async function enviar(to, datos, asunto) {
 
 // Talleres a los que toca mandar el recordatorio ahora (o la fecha pedida a mano).
 function talleresATratar(fechaManual) {
-  if (fechaManual) return TALLERES[fechaManual] ? [fechaManual] : [];
+  const todos = Object.assign({}, TALLERES, TALLERES_PRUEBA);
+  if (fechaManual) return todos[fechaManual] ? [fechaManual] : [];
   const ahora = Date.now();
-  return Object.keys(TALLERES).filter((k) => {
-    const t = TALLERES[k];
-    if (t.cerrada && !t.plazas) return false;
-    const falta = Date.parse(t.inicio) - ahora;
-    return falta >= HORAS_MIN * 3600 * 1000 && falta <= HORAS_MAX * 3600 * 1000;
+  return Object.keys(todos).filter((k) => {
+    const falta = Date.parse(todos[k].inicio) - ahora;
+    // Las pruebas no se marcan en Stripe: solo entran en la primera pasada (20–30 h antes).
+    const min = TALLERES_PRUEBA[k] ? 20 : HORAS_MIN;
+    return falta >= min * 3600 * 1000 && falta <= HORAS_MAX * 3600 * 1000;
   });
 }
 
 // Personas (agrupadas por email) con reserva confirmada en esas fechas.
-async function destinatarios(claves) {
-  if (!claves.length) return [];
+async function destinatarios(clavesTodas) {
+  const pruebas = clavesTodas.filter((k) => TALLERES_PRUEBA[k]).map((k) => ({
+    clave: k, email: PRUEBA_EMAIL, nombre: TALLERES_PRUEBA[k].nombre || '', plazas: TALLERES_PRUEBA[k].plazas || 1,
+    sesiones: [], yaEnviado: false, prueba: true,
+  }));
+  const claves = clavesTodas.filter((k) => !TALLERES_PRUEBA[k]);
+  if (!claves.length) return pruebas;
   const desde = Math.floor(Date.now() / 1000) - DIAS_ATRAS * 86400;
   const sesiones = [];
   await stripe.checkout.sessions
@@ -239,7 +257,7 @@ async function destinatarios(claves) {
     if (!d.nombre) d.nombre = primerNombre(f.nombre);
     if (m.recordatorio_enviado === f.clave) d.yaEnviado = true; // ya enviado para ESTA fecha
   }
-  return Object.values(porEmail);
+  return pruebas.concat(Object.values(porEmail));
 }
 
 module.exports = async (req, res) => {
@@ -265,23 +283,21 @@ module.exports = async (req, res) => {
     if (q.ver) {
       return res.status(200).json({
         activo: ACTIVO,
-        talleres: claves.map((k) => ({ clave: k, empieza: TALLERES[k].inicio, descripcion: TALLERES[k].descripcion })),
+        talleres: claves.map((k) => { const t = TALLERES[k] || TALLERES_PRUEBA[k]; return { clave: k, empieza: t.inicio, descripcion: t.descripcion }; }),
         recibirian: lista.filter((d) => !d.yaEnviado).map((d) => ({ fecha: d.clave, nombre: d.nombre, email: d.email, plazas: d.plazas })),
         ya_enviados: lista.filter((d) => d.yaEnviado).map((d) => ({ fecha: d.clave, email: d.email })),
       });
     }
 
-    // 3) Envío real (lo lanza el cron). Desactivado hasta que ACTIVO = true.
-    if (!ACTIVO) {
-      console.log('Recordatorio desactivado (ACTIVO = false). Talleres en ventana:', claves.join(', ') || 'ninguno');
-      return res.status(200).json({ ok: true, activo: false, talleres: claves, pendientes: lista.filter((d) => !d.yaEnviado).length });
-    }
+    // 3) Envío real (lo lanza el cron). A clientas solo si ACTIVO = true; las pruebas siempre.
+    const aEnviar = lista.filter((x) => !x.yaEnviado && (x.prueba || ACTIVO));
+    if (!ACTIVO) console.log('Recordatorio a clientas desactivado (ACTIVO = false). Talleres en ventana:', claves.join(', ') || 'ninguno');
 
     const enviados = [];
     const errores = [];
-    for (const d of lista.filter((x) => !x.yaEnviado)) {
+    for (const d of aEnviar) {
       try {
-        await enviar(d.email, d);
+        await enviar(d.email, d, d.prueba ? `[PRUEBA] ${ASUNTO}` : ASUNTO);
         for (const id of d.sesiones) await stripe.checkout.sessions.update(id, { metadata: { recordatorio_enviado: d.clave } });
         enviados.push({ fecha: d.clave, email: d.email, plazas: d.plazas });
       } catch (err) {
@@ -291,7 +307,7 @@ module.exports = async (req, res) => {
       await esperar(600); // Resend admite ~2 envíos por segundo
     }
     console.log('Recordatorios enviados:', enviados.length, 'errores:', errores.length);
-    return res.status(200).json({ ok: true, talleres: claves, enviados, errores });
+    return res.status(200).json({ ok: true, activo: ACTIVO, talleres: claves, enviados, errores });
   } catch (err) {
     console.error('Error en recordatorio:', err);
     return res.status(500).json({ error: err.message });
