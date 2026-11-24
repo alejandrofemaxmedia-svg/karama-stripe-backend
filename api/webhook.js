@@ -1,6 +1,8 @@
 // api/webhook.js
 // Stripe llama a esta función automáticamente cada vez que se completa un
-// pago (evento "checkout.session.completed"). Según el tipo de compra:
+// pago (evento "checkout.session.completed") o se hace un reembolso
+// (evento "charge.refunded": desactiva los códigos del bono reembolsado).
+// Según el tipo de compra:
 //  - Abono regalo: generamos un código nuevo y único por cada plaza
 //    comprada, y lo mandamos por email a quien lo compró.
 //  - Reserva normal del taller: mandamos un email bonito de agradecimiento
@@ -40,7 +42,10 @@ async function marcarPagadoEnHoja(session) {
   }
 }
 
-const GIFT_COUPON_ID = process.env.GIFT_COUPON_ID; // el ID del Cupón "100% descuento" creado en Stripe
+const GIFT_COUPON_ID = process.env.GIFT_COUPON_ID; // cupón 100 % del bono de VELAS (solo aplicable al producto de velas)
+// Cupón 100 % del bono de RECIPIENTES (solo aplicable al producto de recipientes).
+// Si no está configurado, los bonos de recipientes usan el de velas (como antes).
+const GIFT_COUPON_ID_RECIPIENTES = process.env.GIFT_COUPON_ID_RECIPIENTES;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RESEND_FROM = process.env.RESEND_FROM || 'Karama Candle <onboarding@resend.dev>';
 
@@ -338,10 +343,12 @@ module.exports = async (req, res) => {
           for (let i = 0; i < qty; i++) {
             const code = generateCode();
             await stripe.promotionCodes.create({
-              coupon: GIFT_COUPON_ID,
+              coupon: (metadata.taller === 'recipientes' && GIFT_COUPON_ID_RECIPIENTES) || GIFT_COUPON_ID,
               code,
               max_redemptions: 1,
               expires_at: Math.floor(expiresAt.getTime() / 1000), // caduca a los 3 meses
+              // Para poder desactivarlo solo si se reembolsa esta compra.
+              metadata: { session_id: session.id, payment_intent: String(session.payment_intent || '') },
             });
             codes.push(code);
           }
@@ -380,5 +387,101 @@ module.exports = async (req, res) => {
     }
   }
 
+  // Reembolso: si es la compra de un bono regalo, se desactivan sus códigos
+  // para que no se puedan usar. (Hay que tener el evento "charge.refunded"
+  // marcado en el webhook de Stripe.)
+  if (event.type === 'charge.refunded') {
+    try {
+      await desactivarBonosReembolsados(event.data.object);
+    } catch (err) {
+      console.error('Error desactivando los bonos de un reembolso:', err);
+    }
+  }
+
   return res.status(200).json({ received: true });
 };
+
+// ---------------------------------------------------------------------------
+// REEMBOLSO DE BONOS REGALO
+// Busca los códigos KARAMA-... que se generaron con la compra reembolsada y
+// los desactiva. Reembolso total = todos sus códigos; reembolso parcial = solo
+// los que correspondan (por ejemplo, 1 de 2), empezando por los no usados.
+// Avisa por email de lo que ha hecho, o de lo que hay que mirar a mano.
+// ---------------------------------------------------------------------------
+async function desactivarBonosReembolsados(charge) {
+  if (!charge.payment_intent) return;
+  const sesiones = await stripe.checkout.sessions.list({ payment_intent: charge.payment_intent, limit: 1 });
+  const session = sesiones.data[0];
+  if (!session || (session.metadata || {}).type !== 'gift_voucher') return; // no es un bono
+
+  const m = session.metadata || {};
+  const qty = parseInt(m.quantity, 10) || 1;
+  const total = session.amount_total || charge.amount || 0;
+  const reembolsado = charge.amount_refunded || 0;
+  const precioBono = total / qty;
+  const aQuitar = reembolsado >= total ? qty : Math.min(qty, Math.round(reembolsado / precioBono));
+  const email = (session.customer_details && session.customer_details.email) || '(sin email)';
+  if (!aQuitar) return;
+
+  // 1) Códigos de esta compra (los nuevos llevan el ID de la compra guardado).
+  const coupons = [GIFT_COUPON_ID, GIFT_COUPON_ID_RECIPIENTES].filter(Boolean);
+  let codigos = [];
+  for (const coupon of coupons) {
+    for await (const pc of stripe.promotionCodes.list({ coupon, limit: 100 })) {
+      if (pc.metadata && pc.metadata.session_id === session.id) codigos.push(pc);
+    }
+  }
+
+  // 2) Códigos antiguos (sin ese dato): los creados en los 3 minutos siguientes
+  //    al pago. Solo se usan si sale exactamente el número de bonos comprados.
+  let porHora = false;
+  if (!codigos.length) {
+    const desde = charge.created - 10;
+    const hasta = charge.created + 180;
+    const candidatos = [];
+    for (const coupon of coupons) {
+      for await (const pc of stripe.promotionCodes.list({ coupon, limit: 100, created: { gte: desde, lte: hasta } })) {
+        if (/^KARAMA-/i.test(pc.code)) candidatos.push(pc);
+      }
+    }
+    if (candidatos.length === qty) { codigos = candidatos; porHora = true; }
+  }
+
+  if (!codigos.length) {
+    await avisarReembolsoBono(email, reembolsado, [], [], [],
+      'No he podido identificar automáticamente qué códigos son de esta compra. Desactívalos a mano en Stripe → Catálogo de productos → Cupones → Abono regalo → Códigos promocionales.');
+    return;
+  }
+
+  // Primero los que no se han usado; los ya canjeados no se pueden anular.
+  codigos.sort((a, b) => (a.times_redeemed || 0) - (b.times_redeemed || 0));
+  const desactivados = [];
+  const yaInactivos = [];
+  const usados = [];
+  for (const pc of codigos) {
+    if (desactivados.length + yaInactivos.length >= aQuitar) break;
+    if (!pc.active) { yaInactivos.push(pc.code); continue; }
+    if (pc.times_redeemed > 0) { usados.push(pc.code); continue; }
+    await stripe.promotionCodes.update(pc.id, { active: false });
+    desactivados.push(pc.code);
+  }
+  if (!desactivados.length && !usados.length) return; // ya estaba todo hecho (Stripe repite eventos)
+
+  await avisarReembolsoBono(email, reembolsado, desactivados, usados, codigos.map((c) => c.code),
+    porHora ? 'Era una compra antigua: los códigos se han identificado por la hora de compra. Revisa que coinciden con los del email que recibió la clienta.' : '');
+}
+
+async function avisarReembolsoBono(email, reembolsado, desactivados, usados, todos, nota) {
+  const li = (arr) => arr.map((c) => `<li style="margin:0 0 4px;"><strong>${c}</strong></li>`).join('');
+  const body = `
+    <h1 class="text-ink" style="margin:0 0 14px; font-family:Georgia,serif; font-size:24px; color:${COLOR_INK};">Bono regalo reembolsado</h1>
+    <p class="text-ink-soft" style="margin:0 0 14px; font-size:15px; line-height:1.55; color:${COLOR_INK_SOFT};">
+      Compra de <strong>${email}</strong> · reembolsado: <strong>${(reembolsado / 100).toFixed(2)} €</strong>
+    </p>
+    ${desactivados.length ? `<p style="margin:0 0 6px; font-size:15px; color:${COLOR_INK_SOFT};">Códigos desactivados (ya no se pueden usar):</p><ul style="margin:0 0 16px; padding-left:20px; color:${COLOR_INK_SOFT};">${li(desactivados)}</ul>` : ''}
+    ${usados.length ? `<p style="margin:0 0 6px; font-size:15px; color:${COLOR_INK_SOFT};">⚠️ Estos códigos ya se habían usado para reservar y no se pueden anular. Revisa esa reserva:</p><ul style="margin:0 0 16px; padding-left:20px; color:${COLOR_INK_SOFT};">${li(usados)}</ul>` : ''}
+    ${todos.length && todos.length !== desactivados.length ? `<p style="margin:0 0 16px; font-size:14px; color:${COLOR_INK_SOFT};">Códigos de esa compra: ${todos.join(', ')}</p>` : ''}
+    ${nota ? `<p style="margin:0 0 16px; font-size:14px; line-height:1.55; color:${COLOR_INK_SOFT};">${nota}</p>` : ''}
+  `;
+  await sendEmail(NOTIFY_EMAILS, `Bono regalo reembolsado · ${email}`, emailWrapper(body, 'Bono regalo reembolsado'));
+}
