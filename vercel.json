@@ -1,8 +1,11 @@
 {
   "crons": [
-    { "path": "/api/resenas", "schedule": "0 16 * * *" }
+    { "path": "/api/resenas", "schedule": "0 16 * * *" },
+    { "path": "/api/recordatorio?turno=manana", "schedule": "30 8 * * *" },
+    { "path": "/api/recordatorio?turno=tarde", "schedule": "0 15 * * *" }
   ],
   "functions": {
-    "api/resenas.js": { "maxDuration": 60 }
+    "api/resenas.js": { "maxDuration": 60 },
+    "api/recordatorio.js": { "maxDuration": 60 }
   }
 }
