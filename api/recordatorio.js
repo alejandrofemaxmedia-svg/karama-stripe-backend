@@ -35,13 +35,7 @@ const ACTIVO = true;
 // real (cron), aunque ACTIVO sea false. No tocan plazas ni Stripe.
 // Cuando termines de probar, deja TALLERES_PRUEBA = {}.
 const PRUEBA_EMAIL = 'alejandro.femaxmedia@gmail.com';
-const TALLERES_PRUEBA = {
-  prueba_26nov: {
-    inicio: '2026-11-26T11:00:00+01:00',
-    descripcion: 'Jueves 26 de noviembre, 11:00 a 14:00 · PRUEBA',
-    nombre: 'Alejandro', plazas: 2,
-  },
-};
+const TALLERES_PRUEBA = {};
 
 const CLAVE = 'karama2026';
 const HORAS_MIN = 6;   // no se manda si al taller le quedan menos de 6 h
@@ -52,7 +46,8 @@ const PREHEADER = 'Todo lo que necesitas saber para mañana';
 const TELEFONO_VISIBLE = '685 45 17 94';
 const TELEFONO_LINK = '+34685451794';
 const WHATSAPP_LINK = 'https://wa.me/34685451794';
-const MAPS_URL = 'https://www.google.com/maps/search/?api=1&query=Avenida+de+las+Universidades+8+Bilbao';
+// Enlace corto y sin "&": es el que mejor abren las apps de correo del móvil (Gmail, Mail…).
+const MAPS_URL = 'https://maps.google.com/?q=Avenida+de+las+Universidades+8,+Bilbao';
 const DIRECCION = 'Avenida de las Universidades 8, Bilbao';
 const REPLY_TO = 'karamacandle@gmail.com'; // si la clienta responde al correo, le llega a Rosario
 
